@@ -13,6 +13,6 @@ The module was initially developed by Keld T. Lundgaard under guidance by Thomas
 Current development by Keld T. Lundgaard
 
 ## Acknowledgements
-Thomas Nystrand - help on organizing the code
+Thomas Nystrand - help with organizing the code
 
 
