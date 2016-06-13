@@ -1,7 +1,7 @@
-# ase-anharmonics
+# ASE-anharmonics
 Uncoupled mode analysis for [ASE (Atomic Simulation Environment)](https://wiki.fysik.dtu.dk/ase/) that goes beyond the harmonic approach and calculates the theremodynamics for rotational modes and frustrated vibrations. The module is a work in progress, which is made public to allow for open collaboration. 
 
-## details 
+## Details 
 
 The current module allows the user to define and sample rotational modes and normal modes, and solve the 1D-schrodinger equation for these. The harmonic and anharmonic treatment is combined in the thermodynamical summary. 
 
