@@ -206,7 +206,7 @@ class AnharmonicModes:
                                   indices=self.vib.indices,
                                   rot_axis=rot_axis)
 
-        rot_mode = rot_mode.update({'mode_settings': mode_settings})
+        rot_mode.update({'mode_settings': mode_settings})
 
         self.an_modes.append(rot_mode)
 
@@ -287,6 +287,7 @@ class AnharmonicModes:
     def run(self):
         """Run the analysis"""
         for i, an_mode in enumerate(self.an_modes):
+
             if an_mode['type'] == 'rotation':
                 AMA = RotAnalysis(
                     an_mode,
