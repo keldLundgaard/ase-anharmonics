@@ -1,12 +1,13 @@
 import numpy as np
 import sys
+import time
 
 sys.path.append("..")
 
 from energy_spectrum_solver import energy_spectrum
 
 # Square well
-if 1:
+if 0:
     xmin = 0.
     xmax = 1.
     fval = lambda x: 0.  # return zero -- infinite square well
@@ -60,58 +61,77 @@ if 0:
     # return loss
 
 
-def squarewell_benchmark(mode, gridincrements, neigbors):
+def squarewell_benchmark(
+        mode, gridincrements, neigbors,
+        minimalgrid=None, Romberg=True):
     fval = lambda x: 0.  # return zero -- infinite square well
 
     energies = energy_spectrum(
         0., 1., fval, 1.,
-        Romberg_integrator=True,
+        Romberg_integrator=Romberg,
         neighbors=neigbors,
         mode=mode,
-        minimalgrid=None,
+        minimalgrid=minimalgrid,
         gridincrements=gridincrements,
         incrementfactor=None,
         verbose=0)
-
-    analytical = np.pi**2/(2.*1.**2)*np.arange(1, len(energies)+1)**2
     numprint = 20
-    analytical = 0.5+np.arange(0, len(energies))
-    numprint = 50
+    analytical = np.pi**2/(2.*1.**2)*np.arange(1, len(energies)+1)**2
     diff = energies[:numprint]-analytical[:numprint]
-    scaled_diff = np.abs(diff)*np.exp(-0.5*analytical[:numprint])
+    scaled_diff = np.abs(diff)*np.exp(-0.015*analytical[:numprint])
     loss = np.sum(scaled_diff)
     return loss
 
 
-def harmonic_benchmark(mode, gridincrements, neigbors):
+def harmonic_benchmark(
+        mode, gridincrements, neigbors,
+        minimalgrid=None, Romberg=True):
     # Harmonic potential
     fval = lambda x: 0.5*x**2
 
     energies = energy_spectrum(
         -50, 50, fval, 1.,
-        Romberg_integrator=True,
+        Romberg_integrator=Romberg,
         neighbors=neigbors,
         mode=mode,
-        minimalgrid=None,
+        minimalgrid=minimalgrid,
         gridincrements=gridincrements,
         incrementfactor=None,
         verbose=0)
-
+    numprint = 20
     analytical = 0.5+np.arange(0, len(energies))
-    numprint = 50
     diff = energies[:numprint]-analytical[:numprint]
     scaled_diff = 1e9*np.abs(diff)*np.exp(-0.5*analytical[:numprint])
     loss = np.sum(scaled_diff)
     return loss
 
 
-# mode = -2
-# gridincrements = None
-# neigbors = 2
-# loss = np.square(
-#     harmonic_benchmark(mode, gridincrements, neigbors)
-#     * squarewell_benchmark(mode, gridincrements, neigbors))
+def run_test(mode, gridincrements, neigbors, Romberg, minimalgrid):
+    t0 = time.time()
+    loss = np.square(
+        harmonic_benchmark(
+            mode, gridincrements, neigbors,
+            minimalgrid=minimalgrid, Romberg=Romberg)
+        * squarewell_benchmark(
+            mode, gridincrements, neigbors,
+            minimalgrid=minimalgrid, Romberg=Romberg))
+    log_loss = np.log(loss)
+    t1 = time.time()
+    timing = t1-t0
+    print 'Romberg', Romberg
+    print timing, 'loss', log_loss
 
 
-# print loss
-# # profile
+# mode = 1
+# gridincrements = 3
+# neigbors = 6
+# Romberg = False
+# minimalgrid = None
+# run_test(mode, gridincrements, neigbors, Romberg, minimalgrid)
+
+mode = 1
+gridincrements = 2
+neigbors = 6
+Romberg = True
+minimalgrid = None
+run_test(mode, gridincrements, neigbors, Romberg, minimalgrid)

@@ -2,6 +2,8 @@
 and the Romberg integration correction.
 """
 
+from __future__ import print_function
+
 import numpy as np
 
 
@@ -55,7 +57,7 @@ def energy_spectrum(
         xmin, xmax,
         fval, Hcoeff,
         mode='fast',
-        Romberg_integrator=True,
+        Romberg_integrator=None,
         neighbors=None,
         minimalgrid=None,
         gridincrements=None,
@@ -86,17 +88,32 @@ def energy_spectrum(
     """
 
     modes = {
+
         'fast': {
-            'minimalgrid': 728,
-            'gridincrements': 2,
-            'incrementfactor': 4.0/3.0,
-            'neighbors': 6, },
+            'minimalgrid': 1024,
+            'gridincrements': 0,
+            'incrementfactor': None,
+            'neighbors': 6,
+            'Romberg_integrator': False},
 
         'accurate': {
-            'minimalgrid': 3124,
-            'gridincrements': 2,
-            'incrementfactor': 6.0/5.0,
-            'neighbors': 4, },
+            'minimalgrid': 2048,
+            'gridincrements': 0,
+            'incrementfactor': None,
+            'neighbors': 6,
+            'Romberg_integrator': False},
+
+        # 'fast': {
+        #     'minimalgrid': 728,
+        #     'gridincrements': 2,
+        #     'incrementfactor': 4.0/3.0,
+        #     'neighbors': 6, },
+
+        # 'accurate': {
+        #     'minimalgrid': 3124,
+        #     'gridincrements': 2,
+        #     'incrementfactor': 6.0/5.0,
+        #     'neighbors': 4, },
 
         # Modes used for testing.
         # Not recommended!
@@ -120,7 +137,14 @@ def energy_spectrum(
             'minimalgrid': 3124,
             'gridincrements': 5,
             'incrementfactor': 6.0/5.0},
+        # finite difference mode
+        -100: {
+            'minimalgrid': 1024,
+            'gridincrements': 0,
+            'incrementfactor': 0,
+        },
     }
+
     assert mode in modes.keys()
 
     if minimalgrid is None:
@@ -131,6 +155,14 @@ def energy_spectrum(
         incrementfactor = modes[mode]['incrementfactor']
     if neighbors is None:
         neighbors = modes[mode].get('neighbors', 2)
+    if Romberg_integrator is None:
+        Romberg_integrator = modes[mode].get('Romberg_integrator', False)
+    # print('mode', mode)
+    # print('Romberg_integrator', Romberg_integrator)
+    # print('neighbors', neighbors)
+    # print('minimalgrid', minimalgrid)
+    # print('gridincrements', gridincrements)
+    # print('incrementfactor', incrementfactor)
 
     if Romberg_integrator:
         eigenarray = np.zeros((gridincrements+1, minimalgrid), float)
@@ -146,17 +178,20 @@ def energy_spectrum(
         if verbose > 1:
             print('realincrementfactors', realincrementfactors)
 
+        # Here we make the bare solution
         for i in range(gridincrements+1):
             eigenarray[i] = FDsolver(
                 xmin, xmax, pointarray[i], fval, Hcoeff,
                 neighbors=neighbors)[:minimalgrid]
+        # print(realincrementfactors[1])
+        print(np.shape(eigenarray))
 
         extrapolatedspectrum, relativeerrors = RombergSpectrumIntegrator(
-            eigenarray, realincrementfactors)
+            eigenarray, realincrementfactors[1])
 
         energy_spectrum = extrapolatedspectrum
     else:
-        # Simple finite difference method (not recommended).
+        # Simple finite difference method.
         energy_spectrum = FDsolver(
             xmin, xmax, minimalgrid, fval, Hcoeff,
             neighbors=neighbors)
@@ -225,6 +260,8 @@ def FDsolver(
             H.flat[-n*i-lencorr:-n*i] = -0.5*corrstencil[::-1] / h**2
             corrstencil = np.insert(corrstencil, [0], 0.)
             lencorr = len(corrstencil)
+    # Correcting units of hamiltonian
+    # Standard is units._hbar**2/(2*units._amu*modemass*1e-20*units._e)
     H *= Hcoeff
 
     # Adding the potential
@@ -243,96 +280,175 @@ def FDsolver(
     return eigenvalues
 
 
-def RombergSpectrumIntegrator(spectrum, realincrementfactors):
-    """
-    Args:
-        Spectrum (numpy array): energies from energy solver
-        realincrementfactors (float): how much to increment grid with
-    return;
-        extrapolatedspectrum (numpy array): Improved energy spectra
-        relativeerrors (numpy array): Error estimates
-    """
-    # Number of points used to solve the initial equation
-    n = len(spectrum[0, :])
+def ConvergenceExponent(new, newer, newest, increment):
+    exponent = np.log((new-newer)/(newer-newest))/np.log(increment)  # If a==b
+    return exponent
 
-    extrapolatedspectrum = np.zeros(n)
-    relativeerrors = np.zeros(n)
-    for i in range(n):
-        rombergeigenvals, relerr, convexps, best, besterr = \
-            RombergIntegrator(spectrum[:, i], realincrementfactors[0])
-        extrapolatedspectrum[i] = best
-        relativeerrors[i] = besterr
-    return extrapolatedspectrum, relativeerrors
+
+def RichardsonExtrapolator(approximantarray, realincrementfactor, order=2):
+    length = len(approximantarray)
+    richardsonextrapolant = np.zeros(length)
+    richardsonconvexponents = np.zeros(length)
+    for r in range(1, length):
+        richardsonextrapolant[r] = (
+            approximantarray[r]
+            + (
+                (approximantarray[r] - approximantarray[r-1])
+                / (realincrementfactor**order - 1)))
+        if r > 2:
+            richardsonconvexponents[r] = (
+                ConvergenceExponent(
+                    richardsonextrapolant[r-2], richardsonextrapolant[r-1],
+                    richardsonextrapolant[r], realincrementfactor))
+    return richardsonextrapolant, richardsonconvexponents
 
 
 def RombergIntegrator(integrants, realincrementfactor=2, exact=None):
-    """"""
-    n = len(integrants)
-
-    extrapolants = np.zeros((n, n))
-    convexps = np.zeros((n, n))
-    relativeerrors = np.zeros((n, n))
-
+    extrapolants = np.zeros((len(integrants), len(integrants)))
+    convexps = np.zeros((len(integrants), len(integrants)))
+    relativeerrors = np.zeros((len(integrants), len(integrants)))
     extrapolants[0, :] = integrants
-    for i in range(1, n):
-        extr, convexp = \
-            RichardsonExtrapolator(
-                extrapolants[i-1, i-1:], realincrementfactor, order=2*i)
+    for i in range(1, len(integrants)):
+        extr, convexp = RichardsonExtrapolator(
+            extrapolants[i-1, i-1:], realincrementfactor, order=2*i)
     extrapolants[i, i-1:] = extr
-
     if exact is None:
-        bestextrap = extrapolants[n-1, n-1]
+        bestextrap = extrapolants[len(integrants)-1, len(integrants)-1]
     else:
         bestextrap = exact
-
-    for i in range(n):
-        for j in range(i+1, n):
-            pre = bestextrap-extrapolants[i, j-1]
-            aft = bestextrap-extrapolants[i, j]
-            # It is normal to get a runtime error here during the first run
-            # which we can happily ignore
-            with np.errstate(invalid='ignore'):
-                convexps[i, j] = np.log(pre/aft)/np.log(realincrementfactor)
-
-    for i in range(n):
-        for j in range(i, n):
-            relativeerrors[i, j] = (
-                int(np.log(np.abs(1-extrapolants[i, j]/(bestextrap+1e-24)))
-                    / np.log(10)))
-
+    for i in range(len(integrants)):
+        for j in range(i+1, len(integrants)):
+            convexps[i, j] = (
+                np.log(
+                    (bestextrap-extrapolants[i, j-1])
+                    / (bestextrap-extrapolants[i, j]))
+                / np.log(realincrementfactor))
+    for i in range(len(integrants)):
+        for j in range(i, len(integrants)):
+            relativeerrors[i, j] = int(
+                np.log(
+                    np.abs(1-extrapolants[i, j]/(bestextrap+1e-24)))
+                / np.log(10))
     bestdiaelement = 0
+
     i = 1
-    while i < n and abs(convexps[i-1, i]-2.0*i) < 2.0:
+    while i < len(integrants) and abs(convexps[i-1, i]-2.0*i) < 2.0:
+        bestdiaelement = i
         i += 1
-    bestdiaelement = i-1
 
     bestextrapolantvalue = extrapolants[bestdiaelement, bestdiaelement]
-
-    tmp1 = (
-        extrapolants[bestdiaelement-1, bestdiaelement-1]
-        - extrapolants[bestdiaelement-1, bestdiaelement])
-    tmp2 = extrapolants[bestdiaelement-1, bestdiaelement]+1e-24
-    errestimate = int(np.log(np.abs(tmp1/tmp2+1e-24))/np.log(10))
+    errestimate = int(
+        np.log(np.abs((
+            extrapolants[bestdiaelement-1, bestdiaelement-1]
+            - extrapolants[bestdiaelement-1, bestdiaelement])
+            / (extrapolants[bestdiaelement-1, bestdiaelement]+1e-24)+1e-24))
+        / np.log(10))
     return (
         extrapolants, relativeerrors, convexps,
         bestextrapolantvalue, errestimate)
 
 
-def RichardsonExtrapolator(approxarr, factor, order=2):
-    """"""
-    length = len(approxarr)
-    extrapolant = np.zeros(length)
-    exponents = np.zeros(length)
-    for r in range(1, length):
-        extrapolant[r] = (
-            approxarr[r]+(approxarr[r]-approxarr[r-1])/(factor**order-1))
-        if r > 2:
-            exponents[r] = ConvergenceExponent(
-                extrapolant[r-2], extrapolant[r-1], extrapolant[r], factor)
-    return extrapolant, exponents
+def RombergSpectrumIntegrator(spectrum, realincrementfactor=2):
+    extrapolatedspectrum = np.zeros(len(spectrum[0, :]))
+    relativeerrors = np.zeros(len(spectrum[0, :]))
+    for i in range(len(spectrum[0, :])):
+        rombergeigenvals, relerr, convexps, best, besterr = RombergIntegrator(
+            spectrum[:, i], realincrementfactor)
+        extrapolatedspectrum[i] = best
+        relativeerrors[i] = besterr
+    return extrapolatedspectrum, relativeerrors
 
 
-def ConvergenceExponent(new, newer, newest, increment):
-    """"""
-    exponent = np.log((new-newer)/(newer-newest))/np.log(increment)
-    return exponent
+# def RombergSpectrumIntegrator(spectrum, realincrementfactors):
+#     """
+#     Args:
+#         Spectrum (numpy array): energies from energy solver
+#         realincrementfactors (float): how much to increment grid with
+#     return;
+#         extrapolatedspectrum (numpy array): Improved energy spectra
+#         relativeerrors (numpy array): Error estimates
+#     """
+#     # Number of points used to solve the initial equation
+#     n = len(spectrum[0, :])
+
+#     extrapolatedspectrum = np.zeros(n)
+#     relativeerrors = np.zeros(n)
+#     for i in range(n):
+#         rombergeigenvals, relerr, convexps, best, besterr = \
+#             RombergIntegrator(spectrum[:, i], realincrementfactors[0])
+#         extrapolatedspectrum[i] = best
+#         relativeerrors[i] = besterr
+#     return extrapolatedspectrum, relativeerrors
+
+
+# def RombergIntegrator(integrants, realincrementfactor=2, exact=None):
+#     """"""
+#     n = len(integrants)
+
+#     extrapolants = np.zeros((n, n))
+#     convexps = np.zeros((n, n))
+#     relativeerrors = np.zeros((n, n))
+
+#     extrapolants[0, :] = integrants
+#     for i in range(1, n):
+#         extr, convexp = \
+#             RichardsonExtrapolator(
+#                 extrapolants[i-1, i-1:], realincrementfactor, order=2*i)
+#     extrapolants[i, i-1:] = extr
+
+#     if exact is None:
+#         bestextrap = extrapolants[n-1, n-1]
+#     else:
+#         bestextrap = exact
+
+#     for i in range(n):
+#         for j in range(i+1, n):
+#             pre = bestextrap-extrapolants[i, j-1]
+#             aft = bestextrap-extrapolants[i, j]
+#             # It is normal to get a runtime error here during the first run
+#             # which we can happily ignore
+#             with np.errstate(invalid='ignore'):
+#                 convexps[i, j] = np.log(pre/aft)/np.log(realincrementfactor)
+
+#     for i in range(n):
+#         for j in range(i, n):
+#             relativeerrors[i, j] = (
+#                 int(np.log(np.abs(1-extrapolants[i, j]/(bestextrap+1e-24)))
+#                     / np.log(10)))
+
+#     bestdiaelement = 0
+#     i = 1
+#     while i < n and abs(convexps[i-1, i]-2.0*i) < 2.0:
+#         i += 1
+#     bestdiaelement = i-1
+
+#     bestextrapolantvalue = extrapolants[bestdiaelement, bestdiaelement]
+
+#     tmp1 = (
+#         extrapolants[bestdiaelement-1, bestdiaelement-1]
+#         - extrapolants[bestdiaelement-1, bestdiaelement])
+#     tmp2 = extrapolants[bestdiaelement-1, bestdiaelement]+1e-24
+#     errestimate = int(np.log(np.abs(tmp1/tmp2+1e-24))/np.log(10))
+#     return (
+#         extrapolants, relativeerrors, convexps,
+#         bestextrapolantvalue, errestimate)
+
+
+# def RichardsonExtrapolator(approxarr, factor, order=2):
+#     """"""
+#     length = len(approxarr)
+#     extrapolant = np.zeros(length)
+#     exponents = np.zeros(length)
+#     for r in range(1, length):
+#         extrapolant[r] = (
+#             approxarr[r]+(approxarr[r]-approxarr[r-1])/(factor**order-1))
+#         if r > 2:
+#             exponents[r] = ConvergenceExponent(
+#                 extrapolant[r-2], extrapolant[r-1], extrapolant[r], factor)
+#     return extrapolant, exponents
+
+
+# def ConvergenceExponent(new, newer, newest, increment):
+#     """"""
+#     exponent = np.log((new-newer)/(newer-newest))/np.log(increment)
+#     return exponent

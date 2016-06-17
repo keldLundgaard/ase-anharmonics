@@ -9,15 +9,17 @@ sys.path.append("../..")
 from energy_spectrum_solver import energy_spectrum
 
 
-def squarewell_benchmark(mode, gridincrements, neigbors):
+def squarewell_benchmark(
+        mode, gridincrements, neigbors,
+        minimalgrid=None, Romberg=True):
     fval = lambda x: 0.  # return zero -- infinite square well
 
     energies = energy_spectrum(
         0., 1., fval, 1.,
-        Romberg_integrator=True,
+        Romberg_integrator=Romberg,
         neighbors=neigbors,
         mode=mode,
-        minimalgrid=None,
+        minimalgrid=minimalgrid,
         gridincrements=gridincrements,
         incrementfactor=None,
         verbose=0)
@@ -29,16 +31,18 @@ def squarewell_benchmark(mode, gridincrements, neigbors):
     return loss
 
 
-def harmonic_benchmark(mode, gridincrements, neigbors):
+def harmonic_benchmark(
+        mode, gridincrements, neigbors,
+        minimalgrid=None, Romberg=True):
     # Harmonic potential
     fval = lambda x: 0.5*x**2
 
     energies = energy_spectrum(
         -50, 50, fval, 1.,
-        Romberg_integrator=True,
+        Romberg_integrator=Romberg,
         neighbors=neigbors,
         mode=mode,
-        minimalgrid=None,
+        minimalgrid=minimalgrid,
         gridincrements=gridincrements,
         incrementfactor=None,
         verbose=0)
@@ -50,12 +54,17 @@ def harmonic_benchmark(mode, gridincrements, neigbors):
     return loss
 
 
-def does_entry_exists(df, mode, gridincrements, neigbors):
+def does_entry_exists(
+        df, mode, gridincrements, neigbors,
+        Romberg, minimalgrid):
 
     lookup = df[
         (df['mode'] == mode) &
         (df['gridincrements'] == gridincrements) &
-        (df['neigbors'] == neigbors)]
+        (df['neigbors'] == neigbors) &
+        (df['minimalgrid'] == minimalgrid) &
+        ((df['Romberg']) == Romberg)
+    ]
     if len(lookup) > 0:
         return True
     else:
@@ -72,35 +81,87 @@ else:
             'mode', 'gridincrements', 'neigbors', "timing", "loss"])
     df = df.set_index('i')
 
-for mode in range(0, 4):
-    for gridincrements in range(2, 6):
-        for neigbors in range(1, 7):
-            if does_entry_exists(df, mode, gridincrements, neigbors):
-                continue
+if 0:
+    for mode in range(0, 4):
+        for gridincrements in range(2, 6):
+            for neigbors in range(1, 7):
+                Romberg = True
+                minimalgrid = None
+                if does_entry_exists(
+                        df, mode, gridincrements, neigbors,
+                        Romberg, minimalgrid):
+                    continue
 
-            print('mode: %i  gridincrements: %i neigbors: %i' % (
-                mode, gridincrements, neigbors),)
+                print('mode: %i  gridincrements: %i neigbors: %i' % (
+                    mode, gridincrements, neigbors),)
 
-            t0 = time.time()
-            loss = np.square(
-                harmonic_benchmark(mode, gridincrements, neigbors)
-                * squarewell_benchmark(mode, gridincrements, neigbors))
-            log_loss = np.log(loss)
-            t1 = time.time()
-            timing = t1-t0
-            df = df.append(
-                pd.DataFrame({
-                    'mode': mode,
-                    'gridincrements': gridincrements,
-                    'neigbors': neigbors,
-                    'timing': timing,
-                    'loss': loss,
-                    'log_loss': log_loss, },
-                    index=[0]))
+                t0 = time.time()
+                loss = np.square(
+                    harmonic_benchmark(mode, gridincrements, neigbors)
+                    * squarewell_benchmark(mode, gridincrements, neigbors))
+                log_loss = np.log(loss)
+                t1 = time.time()
+                timing = t1-t0
+                df = df.append(
+                    pd.DataFrame({
+                        'mode': mode,
+                        'gridincrements': gridincrements,
+                        'neigbors': neigbors,
+                        'timing': timing,
+                        'loss': loss,
+                        'log_loss': log_loss,
+                        'Romberg': Romberg, },
+                        index=[0]))
 
-            print(
-                ' ----> '
-                'timing: %.2f loss: %.2f' % (
-                    timing, loss)
-            )
-            pickle.dump(df, open(fn, 'wb'))
+                print(
+                    ' ----> '
+                    'timing: %.2f log_loss: %.2f' % (
+                        timing, log_loss)
+                )
+                pickle.dump(df, open(fn, 'wb'))
+
+
+grids = list(2**np.array(range(7, 13)))
+
+for minimalgrid in grids:
+    for neigbors in range(1, 7):
+        Romberg = False
+        gridincrements = 0
+        mode = -100  # FD
+        if does_entry_exists(
+                df, mode, gridincrements, neigbors,
+                Romberg, minimalgrid):
+            continue
+
+        print('Romberg %r minimalgrid: %i neigbors: %i' % (
+            Romberg, minimalgrid, neigbors),)
+
+        t0 = time.time()
+        loss = np.square(
+            harmonic_benchmark(
+                mode, gridincrements, neigbors,
+                minimalgrid=minimalgrid, Romberg=Romberg)
+            * squarewell_benchmark(
+                mode, gridincrements, neigbors,
+                minimalgrid=minimalgrid, Romberg=Romberg))
+        log_loss = np.log(loss)
+        t1 = time.time()
+        timing = t1-t0
+        df = df.append(
+            pd.DataFrame({
+                'mode': mode,
+                'Romberg': Romberg,
+                'gridincrements': gridincrements,
+                'minimalgrid': minimalgrid,
+                'neigbors': neigbors,
+                'timing': timing,
+                'loss': loss,
+                'log_loss': log_loss, },
+                index=[0]))
+
+        print(
+            ' ----> '
+            'timing: %.2f log_loss: %.2f' % (
+                timing, log_loss)
+        )
+        pickle.dump(df, open(fn, 'wb'))
