@@ -1,0 +1,26 @@
+{
+    "language": "PYTHON",
+    "main-file": "optimize_spearmint",
+    "experiment-name": "simple-optimize_energy_solver",
+    "likelihood": "NOISELESS",
+    "variables": {
+        "mode": {
+            "type": "INT",
+            "size": 1,
+            "min": 0,
+            "max": 3
+        },
+        "gridincrements": {
+            "type": "INT",
+            "size": 1,
+            "min": 2,
+            "max": 5
+        },
+        "neigbors": {
+            "type": "INT",
+            "size": 1,
+            "min": 2,
+            "max": 5
+        }
+    }
+}
