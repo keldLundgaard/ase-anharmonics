@@ -84,6 +84,13 @@ class BaseAnalysis(object):
         """
         Calculate thermodynamics of mode. Currently supporting vibrational
         modes and rotational modes.
+
+        With settings the user can change the energy solver mode.
+        There are two recommended modes:
+         - 'fast' fast and with a decent accuracy
+         - 'accurate' 50 times slower but more accurate
+
+        See tests for quantitative comparison between the modes
         """
 
         # Calculating the energy modes differently depending on the type
@@ -110,7 +117,9 @@ class BaseAnalysis(object):
             raise ValueError("No other types are currently supported")
 
         # Calculating energy spectrum
-        energies = energy_spectrum(xmin, xmax, fitobj.fval, Hcoeff)
+        energies = energy_spectrum(
+            xmin, xmax, fitobj.fval, Hcoeff,
+            mode=self.settings.get('energy_solver_mode', 'fast'))
 
         # subtracting the groundstate energy
         energies -= groundstate_energy

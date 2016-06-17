@@ -54,63 +54,119 @@ boundarycorr = [
         -901775420./75675600, 191429035./75675600, -25318020./75675600,
         1571266./75675600]]
 
+# np.seterr(all='raise')
+
 
 def energy_spectrum(
         xmin, xmax,
         fval, Hcoeff,
-        minimalgrid=200,
-        neighbors=2,
+        mode='fast',
         Romberg_integrator=True,
-        gridincrements=3):
+        neighbors=None,
+        minimalgrid=None,
+        gridincrements=None,
+        incrementfactor=None,
+        verbose=1):
 
     """Calculate energy spectrum
 
     Note:
-        This module does not use the Romberg integrator as I think there
-        is a problem with it.
+        Recommended to pick a precision mode.
 
-        incrementfactor = 2
+
+    Args:
+        xmin (float): lower end of domain
+        xmax (float): upper end of domain
+        fval (object): function for right hand side (RHS)
+        Hcoeff ():coefficient to multiply the FD matrix with
+        mode (int,str): mode for calculation
+            Recommending 'fast' or 'accurate' from benchmark test of
+            different parameter choices. accurate is ~40x slower than
+            fast but includes many more energies and higher accuracy.
+
+        minimalgrid (int): number of points in minimal grid
+        neighbours -- order of FD solver
+            (higher convergence for more neighbours)
+        gridincrements (int): num of increments
+        incrementfactor (float): grid increment factor
+    Returns:
+        eigenvalue spectrum (numpy array)
+    """
+
+    modes = {
+        # for quick testing
+        -1: {
+            'minimalgrid': 728,
+            'gridincrements': 2,
+            'incrementfactor': 4.0/3.0},
+        0: {
+            'minimalgrid': 546,
+            'gridincrements': 6,
+            'incrementfactor': 4.0/3.0},
+        1: {
+            'minimalgrid': 728,
+            'gridincrements': 5,
+            'incrementfactor': 4.0/3.0},
+        2: {
+            'minimalgrid': 1023,
+            'gridincrements': 5,
+            'incrementfactor': 5.0/4.0},
+        3: {
+            'minimalgrid': 3124,
+            'gridincrements': 5,
+            'incrementfactor': 6.0/5.0},
+
+
+        'fast': {
+            'minimalgrid': 728,
+            'gridincrements': 2,
+            'incrementfactor': 4.0/3.0,
+            'neighbors': 6, },
+
+        'accurate': {
+            'minimalgrid': 3124,
+            'gridincrements': 2,
+            'incrementfactor': 6.0/5.0,
+            'neighbors': 4, },
+    }
+    assert mode in modes.keys()
+
+    if minimalgrid is None:
+        minimalgrid = modes[mode]['minimalgrid']
+    if gridincrements is None:
+        gridincrements = modes[mode]['gridincrements']
+    if incrementfactor is None:
+        incrementfactor = modes[mode]['incrementfactor']
+    if neighbors is None:
+        neighbors = modes[mode].get('neighbors', 2)
+
+    if Romberg_integrator:
         eigenarray = np.zeros((gridincrements+1, minimalgrid), float)
         pointarray = np.array(
             (minimalgrid+1)
             * incrementfactor**np.arange(0, gridincrements+1)-0.5, int)
 
-        realincrementfactors = np.zeros(len(pointarray))
         # check that these are identical, otherwise convergence is poor:
-        for i in range(1, len(pointarray)):
-            realincrementfactors[i] = (pointarray[i]+1.0)/(pointarray[i-1]+1.0)
+        realincrementfactors = np.zeros(len(pointarray)-1)
+        for i in range(len(realincrementfactors)):
+            realincrementfactors[i] = (pointarray[i+1]+1.0)/(pointarray[i]+1.0)
+        if verbose > 1:
+            print('realincrementfactors', realincrementfactors)
 
         for i in range(gridincrements+1):
             eigenarray[i] = FDsolver(
                 xmin, xmax, pointarray[i], fval, Hcoeff,
-                correction=False,
-                neighbors=2)[:minimalgrid]
+                neighbors=neighbors)[:minimalgrid]
 
         extrapolatedspectrum, relativeerrors = RombergSpectrumIntegrator(
             eigenarray, realincrementfactors)
 
-        print eigenarray[0]
-        print eigenarray[gridincrements]
-        print extrapolatedspectrum
-
         energy_spectrum = extrapolatedspectrum
-
-    Args:
-        xmin (float): lower end of domain
-        xmax(float): upper end of domain
-        n (int): number of points
-        fval (object): function for 'RHS'
-        Hcoeff ():coefficient to multiply the FD matrix with
-        correction -- boundary correction for FD matrix
-        neighbours -- order of FD solver
-            (higher convergence for more neighbours)
-    Returns:
-        eigenvalue spectrum (numpy array)
-    """
-    energy_spectrum = FDsolver(
-        xmin, xmax, minimalgrid*4, fval, Hcoeff,
-        correction=False,
-        neighbors=2)[:minimalgrid]
+    else:
+        # Simple finite difference method (Not recommended)
+        energy_spectrum = FDsolver(
+            xmin, xmax, minimalgrid, fval, Hcoeff,
+            neighbors=neighbors)
 
     return energy_spectrum
 
@@ -134,8 +190,7 @@ def FDsolver(
         xmax(float): upper end of domain
         n (int): number of points
         fval (object): function for 'RHS'
-        Hcoeff ():coefficient to multiply the FD matrix with
-        correction -- boundary correction for FD matrix
+        Hcoeff (float):coefficient to multiply the FD matrix with
         neighbours -- order of FD solver
             (higher convergence for more neighbours)
 
@@ -239,7 +294,10 @@ def RombergIntegrator(integrants, realincrementfactor=2, exact=None):
         for j in range(i+1, n):
             pre = bestextrap-extrapolants[i, j-1]
             aft = bestextrap-extrapolants[i, j]
-            convexps[i, j] = np.log(pre/aft)/np.log(realincrementfactor)
+            # It is normal to get a runtime error here during the first run
+            # which we can happily ignore
+            with np.errstate(invalid='ignore'):
+                convexps[i, j] = np.log(pre/aft)/np.log(realincrementfactor)
 
     for i in range(n):
         for j in range(i, n):
