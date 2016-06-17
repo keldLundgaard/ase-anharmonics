@@ -2,10 +2,6 @@
 and the Romberg integration correction.
 """
 
-# TODO: Current implementation does not use Romberg integration.
-# Should be corrected.
-#
-
 import numpy as np
 
 
@@ -54,8 +50,6 @@ boundarycorr = [
         -901775420./75675600, 191429035./75675600, -25318020./75675600,
         1571266./75675600]]
 
-# np.seterr(all='raise')
-
 
 def energy_spectrum(
         xmin, xmax,
@@ -70,19 +64,17 @@ def energy_spectrum(
 
     """Calculate energy spectrum
 
-    Note:
-        Recommended to pick a precision mode.
-
-
     Args:
         xmin (float): lower end of domain
         xmax (float): upper end of domain
         fval (object): function for right hand side (RHS)
         Hcoeff ():coefficient to multiply the FD matrix with
-        mode (int,str): mode for calculation
-            Recommending 'fast' or 'accurate' from benchmark test of
-            different parameter choices. accurate is ~40x slower than
-            fast but includes many more energies and higher accuracy.
+        mode (str, int): mode for calculation
+            Use 'fast' or 'accurate' mode
+            Accurate is ~40x slower than fast but includes more
+            energies (good for very sloppy modes) and higher
+            accuracy.
+            ! See benchmark test for why these modes were chosen.
 
         minimalgrid (int): number of points in minimal grid
         neighbours -- order of FD solver
@@ -94,7 +86,20 @@ def energy_spectrum(
     """
 
     modes = {
-        # for quick testing
+        'fast': {
+            'minimalgrid': 728,
+            'gridincrements': 2,
+            'incrementfactor': 4.0/3.0,
+            'neighbors': 6, },
+
+        'accurate': {
+            'minimalgrid': 3124,
+            'gridincrements': 2,
+            'incrementfactor': 6.0/5.0,
+            'neighbors': 4, },
+
+        # Modes used for testing.
+        # Not recommended!
         -1: {
             'minimalgrid': 728,
             'gridincrements': 2,
@@ -115,19 +120,6 @@ def energy_spectrum(
             'minimalgrid': 3124,
             'gridincrements': 5,
             'incrementfactor': 6.0/5.0},
-
-
-        'fast': {
-            'minimalgrid': 728,
-            'gridincrements': 2,
-            'incrementfactor': 4.0/3.0,
-            'neighbors': 6, },
-
-        'accurate': {
-            'minimalgrid': 3124,
-            'gridincrements': 2,
-            'incrementfactor': 6.0/5.0,
-            'neighbors': 4, },
     }
     assert mode in modes.keys()
 
@@ -147,6 +139,7 @@ def energy_spectrum(
             * incrementfactor**np.arange(0, gridincrements+1)-0.5, int)
 
         # check that these are identical, otherwise convergence is poor:
+        # This has been checked for the predefined modes
         realincrementfactors = np.zeros(len(pointarray)-1)
         for i in range(len(realincrementfactors)):
             realincrementfactors[i] = (pointarray[i+1]+1.0)/(pointarray[i]+1.0)
@@ -163,7 +156,7 @@ def energy_spectrum(
 
         energy_spectrum = extrapolatedspectrum
     else:
-        # Simple finite difference method (Not recommended)
+        # Simple finite difference method (not recommended).
         energy_spectrum = FDsolver(
             xmin, xmax, minimalgrid, fval, Hcoeff,
             neighbors=neighbors)
@@ -253,9 +246,11 @@ def FDsolver(
 def RombergSpectrumIntegrator(spectrum, realincrementfactors):
     """
     Args:
-        Spectrum ():
-        realincrementfactors ():
-
+        Spectrum (numpy array): energies from energy solver
+        realincrementfactors (float): how much to increment grid with
+    return;
+        extrapolatedspectrum (numpy array): Improved energy spectra
+        relativeerrors (numpy array): Error estimates
     """
     # Number of points used to solve the initial equation
     n = len(spectrum[0, :])
@@ -301,8 +296,6 @@ def RombergIntegrator(integrants, realincrementfactor=2, exact=None):
 
     for i in range(n):
         for j in range(i, n):
-            # print np.abs(1-extrapolants[i, j])
-            # print bestextrap
             relativeerrors[i, j] = (
                 int(np.log(np.abs(1-extrapolants[i, j]/(bestextrap+1e-24)))
                     / np.log(10)))
