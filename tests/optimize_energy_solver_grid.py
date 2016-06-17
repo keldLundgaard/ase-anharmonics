@@ -21,13 +21,10 @@ def squarewell_benchmark(mode, gridincrements, neigbors):
         gridincrements=gridincrements,
         incrementfactor=None,
         verbose=0)
-
-    analytical = np.pi**2/(2.*1.**2)*np.arange(1, len(energies)+1)**2
     numprint = 20
-    analytical = 0.5+np.arange(0, len(energies))
-    numprint = 50
+    analytical = np.pi**2/(2.*1.**2)*np.arange(1, len(energies)+1)**2
     diff = energies[:numprint]-analytical[:numprint]
-    scaled_diff = np.abs(diff)*np.exp(-0.5*analytical[:numprint])
+    scaled_diff = np.abs(diff)*np.exp(-0.015*analytical[:numprint])
     loss = np.sum(scaled_diff)
     return loss
 
@@ -45,9 +42,8 @@ def harmonic_benchmark(mode, gridincrements, neigbors):
         gridincrements=gridincrements,
         incrementfactor=None,
         verbose=0)
-
+    numprint = 20
     analytical = 0.5+np.arange(0, len(energies))
-    numprint = 50
     diff = energies[:numprint]-analytical[:numprint]
     scaled_diff = 1e9*np.abs(diff)*np.exp(-0.5*analytical[:numprint])
     loss = np.sum(scaled_diff)
@@ -66,7 +62,7 @@ def does_entry_exists(df, mode, gridincrements, neigbors):
         return False
 
 
-fn = "benchmark_results.pckl"
+fn = "optimize_calculated_results.pckl"
 if os.path.exists(fn):
     df = pickle.load(open(fn, 'rb'))
 else:
