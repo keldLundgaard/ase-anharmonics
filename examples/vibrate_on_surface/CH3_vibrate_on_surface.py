@@ -1,8 +1,6 @@
 import sys
-import numpy as np
-# import matplotlib.pylab as plt
 import os
-# from ase import Atoms
+
 from ase.structure import molecule
 from ase.lattice.surface import fcc111, add_adsorbate
 from ase.optimize import QuasiNewton
@@ -15,11 +13,10 @@ sys.path.append("../..")
 
 from __init__ import AnharmonicModes
 
-
-try:
+if os.path.exists('CH3_Al.traj'):
     slab = ase.io.read('CH3_Al.traj')
     slab.set_calculator(EMT())  # Need to reset when loading from traj file
-except:
+else:
     slab = fcc111('Al', size=(2, 2, 2), vacuum=3.0)
 
     CH3 = molecule('CH3')
@@ -36,23 +33,12 @@ except:
     ase.io.write('CH3_Al.traj', slab)
 
 # Running vibrational analysis
-
-vib = Vibrations(
-    slab,
-    indices=[8, 9, 10, 11]
-)
-
+vib = Vibrations(slab, indices=[8, 9, 10, 11])
 vib.run()
-
 vib.summary()
 
 print('\n >> Anharmonics <<\n')
-
 AM = AnharmonicModes(vibrations_object=vib)
-
-vib_mode = AM.define_vibration(
-    mode_number=-1
-)
-
+vib_mode = AM.define_vibration(mode_number=-1)
 AM.run()
 AM.summary()

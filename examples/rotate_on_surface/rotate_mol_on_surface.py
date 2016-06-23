@@ -1,4 +1,5 @@
 import sys
+import os
 
 from ase.structure import molecule
 from ase.lattice.surface import fcc111, add_adsorbate
@@ -12,10 +13,10 @@ sys.path.append("../..")
 
 from __init__ import AnharmonicModes
 
-try:
+if os.path.exists('CH3_Al.traj'):
     slab = ase.io.read('CH3_Al.traj')
     slab.set_calculator(EMT())  # Need to reset when loading from traj file
-except:
+else:
     slab = fcc111('Al', size=(2, 2, 2), vacuum=3.0)
 
     CH3 = molecule('CH3')
