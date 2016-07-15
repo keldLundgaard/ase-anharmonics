@@ -259,26 +259,13 @@ class VibAnalysis(BaseAnalysis):
                                           method='bounded')
 
                     next_displacement = res.x
-                print next_displacement
+
                 self.an_mode['displacements'].append(next_displacement)
                 self.add_displacement_energy(next_displacement)
-                # sample direction:
 
-        import matplotlib.pylab as plt
-        plt.plot(
-            self.an_mode['displacements'],
-            np.array(self.an_mode['displacement_energies']),
-            'x')
-        plt.show()
-
-        raise NotImplementedError(" !!!")
-        # if self.settings.get("find_accurate_principle_energy"):
-
-        # Sampling up to xkT
-
-        # self.energies_last
-        raise
-        #
+        # TODO: sample energy curve to improve accuracy
+        # ..
+        # ..
 
     def add_displacement_energy(self, displacement):
         # TODO: This function should be a part of base
