@@ -129,9 +129,24 @@ def run_test(mode, gridincrements, neigbors, Romberg, minimalgrid):
 # minimalgrid = None
 # run_test(mode, gridincrements, neigbors, Romberg, minimalgrid)
 
+# mode = 1
+# gridincrements = 2
+# neigbors = 6
+# Romberg = True
+# minimalgrid = None
+# run_test(mode, gridincrements, neigbors, Romberg, minimalgrid)
+print('double')
 mode = 1
-gridincrements = 2
+gridincrements = 5
 neigbors = 6
 Romberg = True
-minimalgrid = None
+minimalgrid = 128
+run_test(mode, gridincrements, neigbors, Romberg, minimalgrid)
+
+print('ref')
+mode = 1
+gridincrements = 0
+neigbors = 6
+Romberg = False
+minimalgrid = 1024
 run_test(mode, gridincrements, neigbors, Romberg, minimalgrid)

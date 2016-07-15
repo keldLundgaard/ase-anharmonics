@@ -42,8 +42,10 @@ class BaseAnalysis(object):
         else:
             self.traj = None
 
+        self.E_max_kT = 5
+
     def run(self):
-        # Checks if there is a backup and loads it to self.an_mode
+        # Checks if there is a backup and loads it to self.an_mode if so
         self.restore_backup()
 
         if not (self.an_mode.get('ZPE') and
@@ -94,7 +96,6 @@ class BaseAnalysis(object):
         """
 
         # Calculating the energy modes differently depending on the type
-
         if self.an_mode['type'] == 'rotation':
             Hcoeff = units._hbar**2/(units._amu * units._e
                                      * self.an_mode['inertia']*1e-20)

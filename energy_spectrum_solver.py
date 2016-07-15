@@ -183,11 +183,11 @@ def energy_spectrum(
             eigenarray[i] = FDsolver(
                 xmin, xmax, pointarray[i], fval, Hcoeff,
                 neighbors=neighbors)[:minimalgrid]
-        # print(realincrementfactors[1])
+
         print(np.shape(eigenarray))
 
         extrapolatedspectrum, relativeerrors = RombergSpectrumIntegrator(
-            eigenarray, realincrementfactors[1])
+            eigenarray, realincrementfactors[1], exact=None)
 
         energy_spectrum = extrapolatedspectrum
     else:
@@ -358,6 +358,14 @@ def RombergSpectrumIntegrator(spectrum, realincrementfactor=2):
         relativeerrors[i] = besterr
     return extrapolatedspectrum, relativeerrors
 
+
+
+
+
+#
+#  Other
+#
+#
 
 # def RombergSpectrumIntegrator(spectrum, realincrementfactors):
 #     """
