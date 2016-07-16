@@ -131,7 +131,7 @@ class RotAnalysis(BaseAnalysis):
 
         angles = np.array([sample_angles[i] for i in angles_sort_args])
         energies = np.array([angle_energies[i] for i in angles_sort_args])
-        energies -= -np.min(energies)
+        energies -= np.min(energies)
 
         angle_spacings = [angles[i+1] - angles[i]
                           for i in range(len(angles)-1)]
@@ -142,8 +142,8 @@ class RotAnalysis(BaseAnalysis):
 
         arg = np.argmax(scaled_angle_spacings)
         new_angle = angles[arg]+angle_spacings[arg]/2.
-        self.an_mode['rot_angles'] = np.hstack((
-            self.an_mode['rot_angles'], new_angle))
+        self.an_mode['rot_angles'] = list(
+            np.hstack((self.an_mode['rot_angles'], new_angle)))
 
         self.add_rot_energy(new_angle)
 

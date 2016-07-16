@@ -115,7 +115,6 @@ class VibAnalysis(BaseAnalysis):
         x = np.array(self.an_mode['displacements'])
         y = np.array(self.an_mode['displacement_energies'])
 
-        # self.get_fit()
         if self.fit_forces:
             fitobj.set_data(
                 x, y,
@@ -139,8 +138,6 @@ class VibAnalysis(BaseAnalysis):
 
         while self.is_converged() is False:
             if len(self.ZPE_hist) > 0:
-                # sample a new point
-                # raise NotImplementedError
                 self.sample_new_point()
 
             if self.verbosity > 1:
@@ -181,12 +178,6 @@ class VibAnalysis(BaseAnalysis):
         the exponenital to the average potential energy of the two angles.
          > exp(avg(E[p0],E[p2])/kT)
 
-        Things that I need to take into account for:
-         - Have we sampled far eneugh out to get a good estimate of ZPE and
-         entropy?
-         - Do we want the first principle frequency to be well described?
-         -
-
         """
         # Should we sample further out
         sample_energies = np.array(self.an_mode['displacement_energies'])
@@ -195,10 +186,6 @@ class VibAnalysis(BaseAnalysis):
         min_energy_sampling = self.kT * self.min_sample_energy_kT
 
         arg_min_x = np.argmin(sample_energies)
-
-        # print(
-        #     'sampling_energy_span', sampling_energy_span,
-        #     '\nmin_energy_sampling', min_energy_sampling)
 
         # Need to go out to the bounds in both directions
         for k, direction in enumerate([1, -1]):
@@ -227,10 +214,6 @@ class VibAnalysis(BaseAnalysis):
                 # for the proper step length. Otherwise, move max step length
 
                 max_displacement = boundary + direction*self.max_stepsize
-
-                print (
-                    fitobj.fval(max_displacement)-np.min(sample_energies),
-                    min_energy_sampling)
 
                 # Checking if we are up to the bounds
                 if (
@@ -263,9 +246,33 @@ class VibAnalysis(BaseAnalysis):
                 self.an_mode['displacements'].append(next_displacement)
                 self.add_displacement_energy(next_displacement)
 
-        # TODO: sample energy curve to improve accuracy
-        # ..
-        # ..
+        #
+        # Find the next point to sample as the one that we think would
+        # add the most information. The simple approach is here to
+        # calculate the spacings between the different displacements
+        # and scale the spacing by the the exponential energy that is expected
+        # for that point
+        #
+        fitobj = self.get_fit()
+
+        displacements = np.sort(self.an_mode['displacements'])
+        sort_args = np.argsort(self.an_mode['displacements'])
+        energies = np.array([self.an_mode['displacement_energies'][i]
+                             for i in sort_args])
+        energies -= np.min(energies)  # subtracting the groundstate energy
+
+        scaled_spacings = [
+            (displacements[i+1]-displacements[i])
+            * np.exp(-(energies[i+1]+energies[i])/(2*self.kT))
+            for i in range(len(energies)-1)]
+
+        max_arg = np.argmax(np.array(scaled_spacings))
+
+        next_displacement = (
+            displacements[max_arg+1]+displacements[max_arg]) / 2.
+
+        self.an_mode['displacements'].append(next_displacement)
+        self.add_displacement_energy(next_displacement)
 
     def add_displacement_energy(self, displacement):
         # TODO: This function should be a part of base
