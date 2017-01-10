@@ -168,14 +168,6 @@ class BaseFit:
                 y[i] = np.dot(b, self.coeffs)
         return y
 
-    # trying to avoid using scipy
-    # def get_potential_bottom(self, periodicity=None):
-    #     res = scipy.optimize.minimize(
-    #         self.fval, 0.,
-    #         method='Nelder-Mead',
-    #         options={"return_all": True})
-    #     return res['x'][0]
-
     def getCoefficients(self):
         return self.coeffs
 

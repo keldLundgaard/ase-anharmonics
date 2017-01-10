@@ -451,26 +451,6 @@ class AnharmonicModes:
 
         return self.hnu_h_post
 
-    # def mode_overlap_spectrum(
-    #         self,
-    #         an_mode):
-    #     """
-
-    #     """
-    #     h_modes = self.vib.modes
-    #     mode_rep = np.tile(an_mode['mode'], (len(h_modes), 1))
-    #     projections = np.sum(h_modes*mode_rep, 1)
-    #     projections /= np.linalg.norm(projections)
-
-    # def save_modes(self, filename):
-    #     pickle.dump(paropen(filename+'.pckl', 'wb'))
-
-    # def restore(self, filename):
-    #     try:
-    #         self.an_modes = pickle.load(paropen(filename+'.pckl', 'rb'))
-    #     except:
-    #         print('not possible to load from '+str(filename)+'.pckl')
-
 
 def gramm(X):
     """Gramm-Schmidt orthogonalization
