@@ -45,6 +45,12 @@ class BaseAnalysis(object):
         self.E_max_kT = 5
 
     def run(self):
+        """ Function to run full analysis following specifications with
+        defined modes
+
+        Returns:
+            self.an_mode (object): The mode object
+        """
         # Checks if there is a backup and loads it to self.an_mode if so
         self.restore_backup()
 
@@ -67,6 +73,10 @@ class BaseAnalysis(object):
         return self.an_mode
 
     def restore_backup(self):
+        """ Restore the mode object from a backup. If there is a backup
+        file then it will load this into the mode object.
+        """
+
         # Check if the filename is there
         if self.bak_filename and os.path.exists(self.bak_filename):
             # Open backup file
@@ -78,7 +88,7 @@ class BaseAnalysis(object):
             self.an_mode = backup
 
     def save_to_backup(self):
-        # dumping current mode to file
+        """ Save current mode object to a pickle file. """
         pickle.dump(self.an_mode,
                     paropen(self.bak_filename+'.pckl', 'wb'))
 
@@ -87,12 +97,14 @@ class BaseAnalysis(object):
         Calculate thermodynamics of mode. Currently supporting vibrational
         modes and rotational modes.
 
-        With settings the user can change the energy solver mode.
-        There are two recommended modes:
-         - 'fast' fast and with a decent accuracy
-         - 'accurate' 50 times slower but more accurate
+        Args:
+            fitobj (object): The fitting object
 
-        See tests for quantitative comparison between the modes
+        Returns:
+            ZPE (float): The zero point energy for the mode.
+            Z_mode (float): The partition function for mode.
+            energies_truncated (list): Energy levels of modes
+                truncated to specific max energy.
         """
 
         # Calculating the energy modes differently depending on the type
@@ -143,9 +155,9 @@ class BaseAnalysis(object):
         return ZPE, Z_mode, energies_truncated
 
     def is_converged(self):
-        """
-        Check if the calculation has converged.
-        Returns True or False
+        """ Check if the calculation has converged.
+        Returns:
+            converged (Bool): If the mode has been converged or not
         """
         converged = False
 
@@ -164,12 +176,3 @@ class BaseAnalysis(object):
                     converged = True
 
         return converged
-
-    # required functions:
-    #  - initial_sampling
-    #  - sample_until_convergence
-
-    # @abc.abstractmethod
-    # def setpersistentbasis(self, order):
-    #     """ Setting the basis vector transformation"""
-    #     pass

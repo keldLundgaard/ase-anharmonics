@@ -48,6 +48,10 @@ class RotAnalysis(BaseAnalysis):
         self.initialize()
 
     def initial_sampling(self):
+        """ Function to start initial sampling of the rotational
+        mode. This can be done before extra samples are introduced.
+        """
+
         # initializing
         if len(self.an_mode.get('rot_angles', [])) == 0:
             self.an_mode['rot_angles'] = self.get_initial_angles()
@@ -63,6 +67,10 @@ class RotAnalysis(BaseAnalysis):
             self.add_rot_energy(next_angle)
 
     def sample_until_convergence(self):
+        """ Function will choose new points along the rotation
+        to calculate groundstate of and terminates if the thermodynamical
+        properties have converged for the mode.
+        """
         # initialize history to check convergence on
         self.ZPE = []
         self.entropy_E = []
@@ -115,7 +123,7 @@ class RotAnalysis(BaseAnalysis):
         the exponenital to the average potential energy of the two angles.
          > exp(avg(E[p0],E[p2])/kT)
         """
-        # Here we need a good algorightm for choosing the next point to sample
+        # TODO: Improve algorightm for choosing the next point to sample
 
         self.an_mode['rot_angles']
 
@@ -148,6 +156,12 @@ class RotAnalysis(BaseAnalysis):
         self.add_rot_energy(new_angle)
 
     def add_rot_energy(self, angle):
+        """ Add groundstate energy for a rotation by angle (input) to
+        the current mode object.
+
+        Args:
+            angle (float): angle of the rotation in radians
+        """
         if angle:  # it will otherwise do a groundstate calculation
             new_positions = self.get_rotate_positions(angle)
             self.atoms.set_positions(new_positions)
@@ -192,7 +206,6 @@ class RotAnalysis(BaseAnalysis):
         # save to backup file:
         if self.bak_filename:
             self.save_to_backup()
-        return
 
     def get_initial_angles(self, nsamples=5):
         """ Returns at which initial angles the energy calculations
@@ -205,6 +218,16 @@ class RotAnalysis(BaseAnalysis):
         return angles
 
     def get_rotate_positions(self, angle):
+        """ Get the atomic positions of branch that are rotated
+        after the branch has been rotated by angle.
+
+        Args:
+            angle (float): angle of rotation in radians
+        returns:
+            rot_pos (numpy array): the positions of the atoms in the
+                branch.
+        """
+
         rot_pos = copy(self.groundstate_positions)
 
         rot_pos[self.an_mode['branch']] = rotatepoints(
@@ -217,7 +240,7 @@ class RotAnalysis(BaseAnalysis):
 
     def make_rotation_traj(self, num_angles, filename='inspect_an_mode.traj'):
         """ make a rotational traj file to easily inspect the defined
-        rotational mode
+        rotational mode.
         """
 
         traj = Trajectory(filename, mode='w', atoms=self.atoms)

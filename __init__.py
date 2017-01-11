@@ -331,8 +331,9 @@ class AnharmonicModes:
         self.modes = self.get_post_modes()
 
         hnu_h_post = self.calculate_post_h_freqs()
+
         #
-        # !! Calculate rotational mode ZPE and entropy energy
+        # Calculate rotational mode ZPE and entropy energy
         #
 
         Z_all = 1.  # Global partition function

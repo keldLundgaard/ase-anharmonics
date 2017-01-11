@@ -55,6 +55,7 @@ class BaseFit:
             assert len(xvals) == len(yderivates)
 
     def cleardata(self):
+        """ Clear working array for fitting"""
         self.xvals = []
         self.yvals = []
         self.yders = []
@@ -65,8 +66,9 @@ class BaseFit:
         raise
 
     def xvalsinbasis(self, xvals, yders):
-        """
-        Creating the design matrix
+        """ Creating the design matrix
+
+
         """
 
         self.setpersistentbasis()

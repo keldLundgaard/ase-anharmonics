@@ -251,7 +251,7 @@ class VibAnalysis(BaseAnalysis):
         # add the most information. The simple approach is here to
         # calculate the spacings between the different displacements
         # and scale the spacing by the the exponential energy that is expected
-        # for that point
+        # for that point.
         #
         fitobj = self.get_fit()
 
@@ -312,7 +312,6 @@ class VibAnalysis(BaseAnalysis):
         # save to backup file:
         if self.bak_filename:
             self.save_to_backup()
-        return
 
     def get_displacement_positions(self, stepsize):
         """
@@ -320,6 +319,7 @@ class VibAnalysis(BaseAnalysis):
         """
         pos = copy(self.groundstate_positions)
         pos[self.an_mode['indices']] += stepsize * self.mode_xyz.reshape(-1, 3)
+
         return pos
 
 
