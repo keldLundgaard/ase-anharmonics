@@ -268,7 +268,7 @@ class AnharmonicModes:
         return vib_mode
 
     def make_rotation_trajs(self):
-        """ Make trajectory files for the defined rotations
+        """Make trajectory files for the defined rotations
 
         These are helpful to check if the defined rotations corresponde
         to what was intended. Can be runned before the actual analysis.
@@ -399,7 +399,7 @@ class AnharmonicModes:
         return ZPE
 
     def get_post_modes(self):
-        """ Calculating the harmonic modes after orthogonalization with the
+        """Calculating the harmonic modes after orthogonalization with the
         newly defined modes from the anharmonic analysis modes.
 
         All modes here are in massweighted coordinates.

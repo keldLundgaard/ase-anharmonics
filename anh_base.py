@@ -12,18 +12,13 @@ from energy_spectrum_solver import energy_spectrum
 
 
 class BaseAnalysis(object):
-    """
-    Base module for calculating the partition function for vibrations and
-    rotations
+    """Base module for calculating the partition function for
+    vibrations and rotations.
     """
     __metaclass__ = abc.ABCMeta
 
     def initialize(self):
-        """
-        Initialize the analysis module:
-         - groundstate energy
-         - traj file
-        """
+        """Initialize the analysis module."""
 
         # Calculate kT to be used:
         self.kT = units.kB * self.temperature
@@ -45,11 +40,11 @@ class BaseAnalysis(object):
         self.E_max_kT = 5
 
     def run(self):
-        """ Function to run full analysis following specifications with
-        defined modes
+        """Function to run full analysis following specifications with
+        defined modes.
 
         Returns:
-            self.an_mode (object): The mode object
+            The mode object
         """
         # Checks if there is a backup and loads it to self.an_mode if so
         self.restore_backup()
@@ -73,7 +68,7 @@ class BaseAnalysis(object):
         return self.an_mode
 
     def restore_backup(self):
-        """ Restore the mode object from a backup. If there is a backup
+        """Restore the mode object from a backup. If there is a backup
         file then it will load this into the mode object.
         """
 
@@ -88,14 +83,13 @@ class BaseAnalysis(object):
             self.an_mode = backup
 
     def save_to_backup(self):
-        """ Save current mode object to a pickle file. """
+        """Save current mode object to a pickle file. """
         pickle.dump(self.an_mode,
                     paropen(self.bak_filename+'.pckl', 'wb'))
 
     def get_thermo(self, fitobj):
-        """
-        Calculate thermodynamics of mode. Currently supporting vibrational
-        modes and rotational modes.
+        """Calculate thermodynamics of mode. Currently supporting
+        vibrational modes and rotational modes.
 
         Args:
             fitobj (object): The fitting object
@@ -155,7 +149,7 @@ class BaseAnalysis(object):
         return ZPE, Z_mode, energies_truncated
 
     def is_converged(self):
-        """ Check if the calculation has converged.
+        """Check if the calculation has converged.
         Returns:
             converged (Bool): If the mode has been converged or not
         """

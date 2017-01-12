@@ -6,9 +6,8 @@ from fit_funcs import RR, find_optimal_regularization
 
 
 class BaseFit:
-    """
-    Introduction:
-    -------------
+    """Base class for fitting module
+
     Calculates the bestfit function to a set of data points, function values
     (and optionally function derivate values) that the user provides.
     The module extends into periodic function fit or polynomial fit
@@ -94,8 +93,7 @@ class BaseFit:
         return X
 
     def run(self):
-        """
-        Creating a best fit by regularizationi:
+        """Creating a best fit by regularization:
 
         The cost function is given as follows:
         Cost = (Xa-y)**2 + omega2*(Gamma*(a-p))**2

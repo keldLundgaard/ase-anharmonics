@@ -119,11 +119,11 @@ def rotatepoints(rotationcenter, rotationaxis, angle, atompos):
     Rotate some coordinates
     See http://en.wikipedia.org/wiki/Rotation_matrix
 
-    Arguments:
-    atompos         -- positions to rotate
-    angle           -- angle to rotate in radians
-    rotationcenter  --
-    rotationaxis    --
+    Args:
+        rotationcenter (numpy array): center for rotation
+        rotationaxis (numpy array): axis to rotate around
+        angle (float): angle to rotate in radians
+        atompos (numpy array): positions to rotate
     """
     x0 = np.matrix(rotationcenter)
     u = np.matrix(rotationaxis)
