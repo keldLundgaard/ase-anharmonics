@@ -459,13 +459,13 @@ def gramm(X):
     Orthogonalization starts from the first vector in the matrix
 
     Args:
-        X (2D numpy-array): mode vectors
+        X (2D numpy-array): mode vectors to be orthogonalized
 
     Returns:
-        The Gramm-Schmidt orthogonalized vector space
+        Numpy array of Gramm-Schmidt orthogonalized vector space
     """
-    V = copy(X)  # [row[:] for row in X]  # make a copy.
-    n = len(X[0])  # number of columns.
+    V = copy(X)
+    n = len(X[0])
     for j in range(1, n):
         V[j] = V[j] - sum([
             np.inner(V[j], V[p])*V[p]/np.inner(V[p], V[p])

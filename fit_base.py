@@ -68,24 +68,30 @@ class BaseFit:
     def xvalsinbasis(self, xvals, yders):
         """ Creating the design matrix
 
+        Args:
+            xvals (numpy array): Sampled points along the given mode
 
+            yders (numpy array): Derivatives to the energy along the mode
+
+        Returns:
+            X (numpy array): Design matrix for the fitting problem
         """
 
         self.setpersistentbasis()
 
         # The standard design matrix for y vals and y' vals
-        xcoords = np.zeros((len(xvals)+len(yders), self.order))
+        X = np.zeros((len(xvals)+len(yders), self.order))
 
         # Use the basisfunctions without any derivate
         for row, x in enumerate(xvals):
-            xcoords[row, :] = self.basisfunction(x, 0)
+            X[row, :] = self.basisfunction(x, 0)
 
         # Extend X matrix to include y' vals
         if len(yders) > 0:
             for row, x in enumerate(xvals):
-                xcoords[row+len(yders), :] = self.basisfunction(x, 1)
+                X[row+len(yders), :] = self.basisfunction(x, 1)
 
-        return xcoords
+        return X
 
     def run(self):
         """
@@ -170,9 +176,6 @@ class BaseFit:
                 y[i] = np.dot(b, self.coeffs)
         return y
 
-    def getCoefficients(self):
-        return self.coeffs
-
     def basisval(self, x, ndiff):
         """ Returns the vector of x in current basis """
         return self.basisfunction(x, ndiff)
@@ -192,9 +195,3 @@ class BaseFit:
     def setpersistentbasis(self, order):
         """ Setting the basis vector transformation"""
         pass
-
-    # def getorder(self):
-    #     """
-    #     Return number of coefficients(degrees of freedom)
-    #     used in fitting function """
-    #     return
