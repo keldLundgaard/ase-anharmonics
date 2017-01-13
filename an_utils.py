@@ -1,33 +1,52 @@
 import numpy as np
 
 
-def to_massweight_coor(mode, atoms, indices=None):
-    """ Transform a mode to massweighted mode
+def to_massweight_coor(movement_vector, atoms, indices=None):
+    """Transform a movement_vector from xyz coordinates to mass
+    weighted coordinates.
 
-    atoms : ase atoms object
-        all atoms in molecule
-    mode : numpy array
-        mode with coordinates of all elements
+    Args:
+        movement_vector (numpy array): vector with coordinates of all
+            elements or specific elements.
+
+        atoms (ase object): ase atoms object
+
+        indices[optional] (list): list of atomic indices that
+            movement_vector describes.
+    Returns:
+        The mass weighted coordinates of the input
     """
-
     if indices is None:
-        assert (3*atoms.get_number_of_atoms() == len(mode)),\
-            '3 times the number of atoms must equal number of modes'
+        assert len(movement_vector) == 3*len(atoms), \
+            'Unexpected length of movement_vector'
 
-        indices = range(len(mode)//3)
+        indices = range(len(movement_vector)//3)
 
     m = atoms.get_masses()[indices]
 
-    return mode*np.repeat(m**0.5, 3)
+    return movement_vector*np.repeat(m**0.5, 3)
 
 
-def to_none_massweight_coor(mode, atoms, indices=None):
-    """ Transform a massweighted mode to none-massweighted mode"""
+def to_none_massweight_coor(movement_vector, atoms, indices=None):
+    """Transform a mass weighted movement_vector to normal xyz coordinates.
+
+    Args:
+        movement_vector (numpy array): vector with coordinates of all
+            elements or specific elements.
+
+        atoms (ase object): ase atoms object
+
+        indices[optional] (list): list of atomic indices that
+            movement_vector describes.
+    Returns:
+        Movement_vector in normal xyz coordinates
+    """
     if indices is None:
-        assert len(atoms) == len(mode)/3, \
-            "The masses to take are not properly defined"
-        indices = range(len(mode)/3)
+        assert len(movement_vector) == 3*len(atoms), \
+            'Unexpected length of movement_vector'
+
+        indices = range(len(movement_vector)//3)
 
     m = atoms.get_masses()[indices]
 
-    return np.repeat(m**(-0.5), 3)*mode
+    return np.repeat(m**(-0.5), 3)*movement_vector
