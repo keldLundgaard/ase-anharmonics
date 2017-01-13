@@ -10,7 +10,7 @@ def get_trans_dict(from_atom_to_atom, vib):
 
     # Movements from position 1 to 2
     delta = positions[from_atom_to_atom[1]]-positions[from_atom_to_atom[0]]
-
+    transition_path_length = np.sqrt(np.sum(delta**2))
     # tangent to follow
     mode_tangent = np.hstack([delta for i in range(len(indices))])
 
@@ -29,6 +29,7 @@ def get_trans_dict(from_atom_to_atom, vib):
         "mode_tangent": mode_tangent,
         "mode_tangent_mass_weighted": mode_tangent_mass_weighted,
         "mode_position_delta": delta,
+        "transition_path_length": transition_path_length,
     }
 
     return trans_mode_dict

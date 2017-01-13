@@ -1,11 +1,11 @@
 import sys
 
-# import numpy as np
+import numpy as np
 # from ase.io.trajectory import Trajectory
 
 from anh_base import BaseAnalysis
-# from fit_rots import PeriodicFit
-# from fit_settings import fit_settings
+from fit_periodic import PeriodicFit
+from fit_settings import fit_settings
 
 
 class TransAnalysis(BaseAnalysis):
@@ -45,25 +45,21 @@ class TransAnalysis(BaseAnalysis):
         self.initialize()
 
     def initial_sampling(self):
-        """ Function to start initial sampling of the rotational
-        mode. This can be done before extra samples are introduced.
+        """Start initial sampling of the mode. This can be done before extra
+        samples are introduced.
         """
-
         # initializing
-        if len(self.an_mode.get('translations', [])) == 0:
-            self.an_mode['translations'] = self.get_initial_points()
-            # self.add_rot_energy(None)  # adding ground state
+        if len(self.an_mode.get('displacements', [])) == 0:
+            self.an_mode['displacements'] = self.get_initial_points()
+            self.add_displacement_energy(None)  # adding ground state
 
-        # getting initial data points
-        raise
+        while (len(self.an_mode['displacements']) >
+               len(self.an_mode.get('displacement_energies', []))):
 
-        # while (len(self.an_mode['rot_angles']) >
-        #        len(self.an_mode.get('rot_energies', []))):
+            displacement = self.an_mode['displacements'][
+                len(self.an_mode['displacement_energies'])]
 
-        #     next_angle = self.an_mode['rot_angles'][
-        #         len(self.an_mode['rot_energies'])]
-
-        #     self.add_rot_energy(next_angle)
+            self.add_displacement_energy(displacement)
 
     def sample_until_convergence(self):
         """ Function will choose new points along the rotation
@@ -86,10 +82,8 @@ class TransAnalysis(BaseAnalysis):
             if self.verbosity > 1:
                 self.log.write('Step %i \n' % len(self.ZPE_hist))
 
-            # Fit mode
-            raise
             fit_settings.update({
-                'symnumber': self.an_mode['symnumber'],
+                'symnumber': 1,
                 'verbose': False,
                 'search_method': 'iterative',
             })
@@ -98,13 +92,13 @@ class TransAnalysis(BaseAnalysis):
 
             if self.fit_forces:
                 fitobj.set_data(
-                    self.an_mode['translations'],
-                    self.an_mode['trans_energies'],
+                    self.an_mode['displacements'],
+                    self.an_mode['displacement_energies'],
                     self.an_mode.get('trans_forces', []))
             else:
                 fitobj.set_data(
-                    self.an_mode['translations'],
-                    self.an_mode['trans_energies'],
+                    self.an_mode['displacements'],
+                    self.an_mode['displacement_energies'],
                     [])
 
             fitobj.run()
@@ -117,61 +111,115 @@ class TransAnalysis(BaseAnalysis):
         return ZPE, Z_mode, energies
 
     def get_initial_points(self, nsamples=5):
-        raise
+        """Get the points to initially calculate the potential
+        energies at.
 
-    # def sample_new_point(self):
+        Returns:
+            displacements (list): The displacements along the
+                translational path
+        """
+        displacements = (
+            self.an_mode['transition_path_length']
+            * (np.array(range(0, nsamples)) / (nsamples-1)))
+        return displacements
 
-    # def add_rot_energy(self, angle):
+    def sample_new_point(self):
+        """Decide what displacement to sample next
 
-    # def get_initial_angles(self, nsamples=5):
-    #     """ Returns at which initial angles the energy calculations
-    #     should be done.
-    #     0 and 2pi is not necessary, as these are already included. """
-    #     angles = (
-    #         2.*np.pi /
-    #         ((nsamples+1)*self.an_mode['symnumber'])
-    #         * np.array(range(0, nsamples+1)))
-    #     return angles
+        We take the maximum angle distance between two samples scaled with
+        the exponenital to the average potential energy of the two angles.
+         > exp(avg(E[p0],E[p2])/kT)
+        """
 
-    # def get_rotate_positions(self, angle):
-    #     """ Get the atomic positions of branch that are rotated
-    #     after the branch has been rotated by angle.
+        displacements = list(self.an_mode['displacements'])
+        displacement_energies = list(self.an_mode['displacement_energies'])
 
-    #     Args:
-    #         angle (float): angle of rotation in radians
-    #     returns:
-    #         rot_pos (numpy array): the positions of the atoms in the
-    #             branch.
-    #     """
+        sort_args = np.argsort(displacements)
 
-    #     rot_pos = copy(self.groundstate_positions)
+        displacements_sorted = np.array([displacements[i] for i in sort_args])
+        energies = np.array([displacement_energies[i] for i in sort_args])
+        energies -= np.min(energies)
 
-    #     rot_pos[self.an_mode['branch']] = rotatepoints(
-    #         self.an_mode['base_pos'],
-    #         self.an_mode['rot_axis'],
-    #         angle,
-    #         rot_pos[self.an_mode['branch']])
+        displacements_spacings = [
+            displacements_sorted[i+1] - displacements_sorted[i]
+            for i in range(len(displacements_sorted)-1)]
 
-    #     return rot_pos
+        scaled_displacements_spacings = [
+            displacements_spacings[i]*np.exp(
+                -(energies[i]+energies[i+1])/(2*self.kT))
+            for i in range(len(displacements)-1)]
 
-    # def make_rotation_traj(self, num_angles, filename='inspect_an_mode.traj'):
-    #     """ make a rotational traj file to easily inspect the defined
-    #     rotational mode.
-    #     """
+        arg = np.argmax(scaled_displacements_spacings)
+        # Pick the point in between the two displacements that is the biggest
+        new_displacement = (displacements_sorted[arg]
+                            + 0.5*displacements_spacings[arg])
 
-    #     traj = Trajectory(filename, mode='w', atoms=self.atoms)
+        self.an_mode['displacements'] = list(
+            np.hstack((displacements, new_displacement)))
 
-    #     old_pos = self.atoms.positions.copy()
-    #     calc = self.atoms.get_calculator()
-    #     self.atoms.set_calculator()
+        self.add_displacement_energy(new_displacement)
 
-    #     angles = self.get_initial_angles(nsamples=num_angles)
+    def add_displacement_energy(self, displacement):
+        """Add the groundstate energy for a displacements along the
+        translational path, and adds it to an_mode['displacement_energies'].
 
-    #     for angle in angles:
-    #         new_pos = self.get_rotate_positions(angle)
-    #         self.atoms.set_positions(new_pos)
-    #         traj.write(self.atoms)
-    #         self.atoms.set_positions(old_pos)
+        Args:
+            displacement (float): How much to follow translational path.
+        """
 
-    #     self.atoms.set_calculator(calc)
-    #     traj.close()
+        # Will otherwise do a groundstate calculation at initial positions
+        if displacement:
+            if displacement != self.an_mode['transition_path_length']:
+                self.atoms.set_positions(
+                    self.get_translation_positions(displacement))
+
+        if not self.an_mode.get('displacement_energies'):
+            self.an_mode['displacement_energies'] = list()
+
+        if self.use_force_consistent:
+            e = self.atoms.get_potential_energy(force_consistent=True)
+
+            # For the forces, we need the projection of the forces
+            # on the normal mode of the rotation at the current angle
+            v_force = self.atoms.get_forces()[
+                self.an_mode['indices']].reshape(-1)
+
+            f = float(np.dot(
+                v_force, self.an_mode['mode_tangent']))
+
+            if not self.an_mode.get('trans_forces'):
+                self.an_mode['trans_forces'] = [f]
+            else:
+                self.an_mode['trans_forces'].append(f)
+        else:
+            e = self.atoms.get_potential_energy()
+
+        if self.traj is not None:
+            self.traj.write(self.atoms)
+
+        self.an_mode['displacement_energies'].append(e)
+
+        self.atoms.set_positions(self.groundstate_positions)
+
+        # save to backup file:
+        if self.bak_filename:
+            self.save_to_backup()
+
+    def get_translation_positions(self, displacement):
+        """Calculate the new positions of the atoms with the vibrational
+        system moving along a linear translational path by a displacements
+        given as an input.
+
+        Args:
+            displacement (float): The displacement along the translational path
+
+        Returns:
+            positions (numpy array): The new positions of the atoms with the
+                vibrational system moved along the translational path.
+        """
+
+        positions = self.atoms.get_positions()
+        for index in self.an_mode['indices']:
+            positions[index] += displacement*self.an_mode['mode_tangent']
+
+        return positions

@@ -7,7 +7,7 @@ from ase.io.trajectory import Trajectory
 
 from define_rot_mode import calculate_rot_mode, rotatepoints
 from anh_base import BaseAnalysis
-from fit_rots import PeriodicFit
+from fit_periodic import PeriodicFit
 from fit_settings import fit_settings
 
 
@@ -123,17 +123,8 @@ class RotAnalysis(BaseAnalysis):
         the exponenital to the average potential energy of the two angles.
          > exp(avg(E[p0],E[p2])/kT)
         """
-        # TODO: Improve algorightm for choosing the next point to sample
-
-        self.an_mode['rot_angles']
-
         sample_angles = list(self.an_mode['rot_angles'])
         angle_energies = list(copy(self.an_mode['rot_energies']))
-
-        # adding the point for making it fully periodic so that points can be
-        # added in between
-        angle_energies.append(angle_energies[0])
-        sample_angles.append(2.*np.pi/self.an_mode['symnumber'])
 
         angles_sort_args = np.argsort(sample_angles)
 
@@ -163,8 +154,12 @@ class RotAnalysis(BaseAnalysis):
             angle (float): angle of the rotation in radians
         """
         if angle:  # it will otherwise do a groundstate calculation
-            new_positions = self.get_rotate_positions(angle)
-            self.atoms.set_positions(new_positions)
+            # It should use the initial groundstate energy if the system
+            # is in a position similar to the starting point.
+            # We thereby save a DFT calculation as the old is reused.
+            if (np.abs(2.*np.pi/self.an_mode['symnumber']-angle) > 1e-5):
+                new_positions = self.get_rotate_positions(angle)
+                self.atoms.set_positions(new_positions)
 
         if not self.an_mode.get('rot_energies'):
             self.an_mode['rot_energies'] = list()
@@ -212,9 +207,9 @@ class RotAnalysis(BaseAnalysis):
         should be done.
         0 and 2pi is not necessary, as these are already included. """
         angles = (
-            2.*np.pi /
-            ((nsamples+1)*self.an_mode['symnumber'])
-            * np.array(range(0, nsamples+1)))
+            2. * np.pi
+            / ((nsamples-1) * self.an_mode['symnumber'])
+            * np.array(range(0, nsamples)))
         return angles
 
     def get_rotate_positions(self, angle):

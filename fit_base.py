@@ -190,6 +190,6 @@ class BaseFit:
         return order
 
     @abc.abstractmethod
-    def setpersistentbasis(self, order):
+    def setpersistentbasis(self):
         """ Setting the basis vector transformation"""
         pass

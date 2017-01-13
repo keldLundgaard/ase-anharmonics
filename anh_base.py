@@ -1,7 +1,7 @@
 import abc
 import os
 import pickle
-
+import warnings
 import numpy as np
 
 import ase.units as units
@@ -121,7 +121,8 @@ class BaseAnalysis(object):
             groundstate_energy = self.an_mode['displacement_energies'][0]
 
         elif self.an_mode['type'] == 'translation':
-            # This is currently a placeholder
+            warnings.warn(
+                "Warning: translational energies not properly scaled!")
 
             # TODO: fix what the units are here.
             Hcoeff = 1
@@ -133,7 +134,7 @@ class BaseAnalysis(object):
             xmax = 3.  # TODO: correct
             # xmin+2.*np.pi/self.an_mode['symnumber']
 
-            groundstate_energy = self.an_mode['path_energies'][0]
+            groundstate_energy = self.an_mode['displacement_energies'][0]
         else:
             raise ValueError("No other types are currently supported")
 
