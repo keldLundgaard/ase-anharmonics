@@ -1,7 +1,7 @@
 import sys
 
 # import numpy as np
-from ase.io.trajectory import Trajectory
+# from ase.io.trajectory import Trajectory
 
 from anh_base import BaseAnalysis
 # from fit_rots import PeriodicFit
@@ -87,6 +87,7 @@ class TransAnalysis(BaseAnalysis):
                 self.log.write('Step %i \n' % len(self.ZPE_hist))
 
             # Fit mode
+            raise
             fit_settings.update({
                 'symnumber': self.an_mode['symnumber'],
                 'verbose': False,
@@ -115,96 +116,12 @@ class TransAnalysis(BaseAnalysis):
 
         return ZPE, Z_mode, energies
 
+    def get_initial_points(self, nsamples=5):
+        raise
+
     # def sample_new_point(self):
-    #     """What new angle to sample:
-
-    #     We take the maximum angle distance between two samples scaled with
-    #     the exponenital to the average potential energy of the two angles.
-    #      > exp(avg(E[p0],E[p2])/kT)
-    #     """
-    #     # TODO: Improve algorightm for choosing the next point to sample
-
-    #     self.an_mode['rot_angles']
-
-    #     sample_angles = list(self.an_mode['rot_angles'])
-    #     angle_energies = list(copy(self.an_mode['rot_energies']))
-
-    #     # adding the point for making it fully periodic so that points can be
-    #     # added in between
-    #     angle_energies.append(angle_energies[0])
-    #     sample_angles.append(2.*np.pi/self.an_mode['symnumber'])
-
-    #     angles_sort_args = np.argsort(sample_angles)
-
-    #     angles = np.array([sample_angles[i] for i in angles_sort_args])
-    #     energies = np.array([angle_energies[i] for i in angles_sort_args])
-    #     energies -= np.min(energies)
-
-    #     angle_spacings = [angles[i+1] - angles[i]
-    #                       for i in range(len(angles)-1)]
-
-    #     scaled_angle_spacings = [
-    #         angle_spacings[i]*np.exp(-(energies[i]+energies[i+1])/(2*self.kT))
-    #         for i in range(len(angles)-1)]
-
-    #     arg = np.argmax(scaled_angle_spacings)
-    #     new_angle = angles[arg]+angle_spacings[arg]/2.
-    #     self.an_mode['rot_angles'] = list(
-    #         np.hstack((self.an_mode['rot_angles'], new_angle)))
-
-    #     self.add_rot_energy(new_angle)
 
     # def add_rot_energy(self, angle):
-    #     """ Add groundstate energy for a rotation by angle (input) to
-    #     the current mode object.
-
-    #     Args:
-    #         angle (float): angle of the rotation in radians
-    #     """
-    #     if angle:  # it will otherwise do a groundstate calculation
-    #         new_positions = self.get_rotate_positions(angle)
-    #         self.atoms.set_positions(new_positions)
-
-    #     if not self.an_mode.get('rot_energies'):
-    #         self.an_mode['rot_energies'] = list()
-
-    #     if self.use_force_consistent:
-    #         e = self.atoms.get_potential_energy(force_consistent=True)
-
-    #         # For the forces, we need the projection of the forces
-    #         # on the normal mode of the rotation at the current angle
-    #         v_force = self.atoms.get_forces()[
-    #             self.an_mode['indices']].reshape(-1)
-
-    #         mode = calculate_rot_mode(
-    #             self.atoms,
-    #             self.an_mode['base_pos'],
-    #             self.an_mode['rot_axis'],
-    #             self.an_mode['branch'],
-    #             mass_weight=False,
-    #             normalize=False).reshape((-1, 3))[
-    #                 self.an_mode['indices']].ravel()
-
-    #         f = float(np.dot(v_force, mode))
-
-    #         if not self.an_mode.get('rot_forces'):
-    #             self.an_mode['rot_forces'] = [f]
-    #         else:
-    #             self.an_mode['rot_forces'].append(f)
-    #     else:
-    #         e = self.atoms.get_potential_energy()
-
-    #     # adding to trajectory:
-    #     if self.traj is not None:
-    #         self.traj.write(self.atoms)
-
-    #     self.an_mode['rot_energies'].append(e)
-
-    #     self.atoms.set_positions(self.groundstate_positions)
-
-    #     # save to backup file:
-    #     if self.bak_filename:
-    #         self.save_to_backup()
 
     # def get_initial_angles(self, nsamples=5):
     #     """ Returns at which initial angles the energy calculations

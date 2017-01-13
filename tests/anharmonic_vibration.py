@@ -2,7 +2,7 @@ from __future__ import print_function
 import sys
 sys.path.append("..")
 
-from ase.structure import molecule
+from ase.build import molecule
 from ase.optimize import QuasiNewton
 from ase.calculators.emt import EMT
 from ase.vibrations import Vibrations

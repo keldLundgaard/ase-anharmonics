@@ -28,6 +28,8 @@ from anh_rot import RotAnalysis
 from anh_vib import VibAnalysis
 from anh_trans import TransAnalysis
 
+import warnings
+
 
 class AnharmonicModes:
     """Calculate anharmonic modes: vibrational and rotational.
@@ -344,6 +346,10 @@ class AnharmonicModes:
     def run(self):
         """Run the analysis"""
         for i, an_mode in enumerate(self.an_modes):
+            if i > 0:
+                warnings.warn(
+                    "Warning: Module has not been tested for multiple \
+                    anharmonic modes! Might not work properly.")
 
             if an_mode['type'] == 'rotation':
                 AMA = RotAnalysis(
