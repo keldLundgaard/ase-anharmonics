@@ -14,6 +14,7 @@ Thomas Nygaard
 from __future__ import division
 
 import sys
+import os
 from copy import copy
 
 import numpy as np
@@ -374,6 +375,62 @@ class AnharmonicModes:
             # adding ZPE, Z_mode, and energy_levels to mode object
             self.an_modes[i] = AMA.run()
 
+        # Calculate the thermodynamical quantities:
+        self.calculate_anharmonic_thermo()
+
+    def calculate_anharmonic_thermo(self):
+        """Calculates the thermodynamic quantities for the
+        anharmonic normal mode analysis.
+        """
+        #
+        # Calculate rotational mode ZPE and entropy energy
+        #
+        self.modes = self.get_post_modes()
+
+        hnu_h_post = self.calculate_post_h_freqs()
+
+        Z_all = 1.  # Global partition function
+        ZPE = 0.  # zero point energy
+
+        # The partition harmonic modes' partition functions
+        for e in hnu_h_post:
+            if e.imag == 0 and e.real >= 0.010:
+                Z_mode = 1./(1.-np.exp(-e.real/(self.kT)))
+                Z_all *= Z_mode
+
+        # Adding zero-point energy of harmonic modes
+        ZPE += self.get_ZPE_of_harmonic_subspace()
+
+        an_energies = []
+        for i, an_mode in enumerate(self.an_modes):
+            # Add zero-point energy of mode
+            ZPE += an_mode['ZPE']
+
+            # Partition function of mode
+            Z_mode = 0.
+            for ei in an_mode['energy_levels']:
+                Z_mode += np.exp(-(ei-an_mode['ZPE'])/self.kT)
+            Z_all *= Z_mode
+
+            # Print principle energy:
+            # Difference between ZPE and first excited energy level
+            e = an_mode['energy_levels'][1]-an_mode['energy_levels'][0]
+            # Energy in inverse cm
+
+            an_energies.append(e)
+
+        self.hnu_h_post = hnu_h_post
+        self.ZPE = ZPE
+        self.Z_all = Z_all
+        self.an_energies = an_energies
+        self.entropic_energy = -1*self.kT*np.log(self.Z_all)
+
+    def get_ZPE(self):
+        return self.ZPE
+
+    def get_entropic_energy(self):
+        return self.entropic_energy
+
     def summary(self, log=None):
         """Summary of the vibrational frequencies.
 
@@ -394,49 +451,17 @@ class AnharmonicModes:
             log = paropen(log, 'a')
         write = log.write
 
-        self.modes = self.get_post_modes()
-
-        hnu_h_post = self.calculate_post_h_freqs()
-
-        #
-        # Calculate rotational mode ZPE and entropy energy
-        #
-
-        Z_all = 1.  # Global partition function
-        ZPE = 0.  # zero point energy
-
-        # The partition harmonic modes' partition functions
-        for e in hnu_h_post:
-            if e.imag == 0 and e.real >= 0.010:
-                Z_mode = 1./(1.-np.exp(-e.real/(self.kT)))
-                Z_all *= Z_mode
-
-        # Adding zero-point energy of harmonic modes
-        ZPE += self.get_ZPE_of_harmonic_subspace()
-
         write(21*'-'+'\n')
         write('  #    meV     cm^-1    type'+'\n')
         for i, an_mode in enumerate(self.an_modes):
-            # Add zero-point energy of mode
-            ZPE += an_mode['ZPE']
-
-            # Partition function of mode
-            Z_mode = 0.
-            for ei in an_mode['energy_levels']:
-                Z_mode += np.exp(-(ei-an_mode['ZPE'])/self.kT)
-            Z_all *= Z_mode
-
-            # Print principle energy:
-            # Difference between ZPE and first excited energy level
-            e = an_mode['energy_levels'][1]-an_mode['energy_levels'][0]
-            # Energy in inverse cm
+            e = self.an_energies[i]
             f = e*self.ev__inv_cm
             write('%3d %6.1f   %7.1f    %s \n' %
                   (i, 1000 * e, f, an_mode['type']))
 
         # Summaries the harmonic modes
         write(21*'-'+'\n')
-        for i, e in enumerate(hnu_h_post):
+        for i, e in enumerate(self.hnu_h_post):
             if e.imag != 0:
                 c = 'i'
                 e = e.imag
@@ -448,8 +473,8 @@ class AnharmonicModes:
                   (i+len(self.an_modes), 1000 * e, c, f, c, 'Harmonic'))
         write(21*'-'+'\n')
 
-        write('Zero-point energy: %.3f \n' % ZPE)
-        write('Entropic energy: %.3f \n' % (-1*self.kT*np.log(Z_all)))
+        write('Zero-point energy: %.3f \n' % self.ZPE)
+        write('Entropic energy: %.3f \n' % self.entropic_energy)
 
     def get_ZPE_of_harmonic_subspace(self, freq=False):
         """Zero-point energy of harmonic subspace
@@ -517,6 +542,11 @@ class AnharmonicModes:
         self.modes_post = modes_
 
         return self.hnu_h_post
+
+    def clean(self):
+        for i, an_mode in enumerate(self.an_modes):
+            os.remove('an_mode_'+str(i)+'.traj')
+            os.remove('an_mode_'+str(i)+'.pckl')
 
 
 def gramm(X):

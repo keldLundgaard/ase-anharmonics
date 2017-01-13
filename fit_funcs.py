@@ -40,7 +40,7 @@ def find_optimal_regularization(X, Y, p, Ns=100):
 
     wlow = -25
     whigh = 5
-    wsteps = 8
+    wsteps = 5
 
     # Successive refinements
     for iref in range(nrefinements):

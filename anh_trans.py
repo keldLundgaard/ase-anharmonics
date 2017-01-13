@@ -1,8 +1,6 @@
-from copy import copy
 import sys
 
-import numpy as np
-
+# import numpy as np
 from ase.io.trajectory import Trajectory
 
 from anh_base import BaseAnalysis
@@ -41,7 +39,7 @@ class TransAnalysis(BaseAnalysis):
         self.E_max_kT = settings.get('E_max_kT', 5)
         self.temperature = settings.get('temperature', 300)  # Kelvin
         self.use_force_consistent = settings.get('use_force_consistent', False)
-        # Convergence tolorance
+        # Convergence tolerance
         self.rel_Z_mode_change_tol = settings.get('rel_Z_mode_tol', 0.005)
 
         self.initialize()

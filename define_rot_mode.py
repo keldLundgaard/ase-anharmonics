@@ -90,10 +90,6 @@ def calculate_rot_mode(atoms, base_pos, rot_axis, branch_arr,
     for i in branch_arr:
         BA = np.array(ap[i])-np.array(base_pos)
         BA = BA - np.dot(BA, BC)
-        # r_dist = np.sqrt(
-        #     np.linalg.norm(BA)**2
-        #     + (np.dot(BA, BC)/np.linalg.norm(BC))**2)
-        # v_rot[i] = r_dist*np.cross(BC, np.array(BA))
         v_rot[i] = np.cross(BC, BA)
 
     v_rot = np.ravel(v_rot)
