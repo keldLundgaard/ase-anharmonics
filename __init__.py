@@ -15,16 +15,17 @@ from __future__ import division
 
 import sys
 from copy import copy
-# import pickle
 
 import numpy as np
 
 import ase.units as units
 from ase.parallel import paropen
 
-from define_rotmode import get_baserotdic
+from define_rot_mode import get_rot_dict
+from define_trans_mode import get_trans_dict
 from anh_rot import RotAnalysis
 from anh_vib import VibAnalysis
+from anh_trans import TransAnalysis
 
 
 class AnharmonicModes:
@@ -200,19 +201,19 @@ class AnharmonicModes:
         for i in branch:
             assert i in self.vib.indices
 
-        rot_mode = get_baserotdic(self.vib.atoms,
-                                  basepos,
-                                  branch,
-                                  indices=self.vib.indices,
-                                  rot_axis=rot_axis)
+        an_mode = get_rot_dict(self.vib.atoms,
+                               basepos,
+                               branch,
+                               indices=self.vib.indices,
+                               rot_axis=rot_axis)
 
-        rot_mode.update({'mode_settings': mode_settings})
+        an_mode.update({'mode_settings': mode_settings})
 
-        self.an_modes.append(rot_mode)
+        self.an_modes.append(an_mode)
 
         self.reduced_h_modes = np.delete(self.reduced_h_modes, 0, axis=0)
 
-        return rot_mode
+        return an_mode
 
     def define_vibration(
             self,
@@ -236,7 +237,7 @@ class AnharmonicModes:
         """
         # Either mode_number or mode_vector should be set
         assert (mode_number is None) ^ (mode_vector is None)
-        vib_mode = {
+        an_mode = {
             'type': 'vibration',
         }
         if mode_vector is not None:
@@ -246,7 +247,9 @@ class AnharmonicModes:
             # Get the current harmonic modes
             post_modes = self.get_post_modes()
 
-            vib_mode.update({
+            an_mode.update({
+                # mode tangent that defines the vibrational mode fully
+                'mode_tangent_mass_weighted': post_modes[mode_number],
                 # The mode that we have selected
                 'mode': post_modes[mode_number],
                 # This is added to allow for a sanity check
@@ -263,9 +266,62 @@ class AnharmonicModes:
             # the harmonic mode space
             self.reduced_h_modes = np.delete(post_modes, mode_number, axis=0)
 
-        self.an_modes.append(vib_mode)
+        self.an_modes.append(an_mode)
 
-        return vib_mode
+        return an_mode
+
+    def define_translation(
+            self,
+            from_atom_to_atom=None,
+            mode_settings={}):
+        """Define an anharmonic vibrational mode
+
+        Args:
+            from_atom_to_atom (optional[list: [#1:int, #2:int]]):
+                Will move the vibrational branch from its current
+                position relative to atom #1 to a simular relative
+                position to atom #2. #1 and #2 refers to the indices
+                of atoms 1 and 2.
+
+        Returns:
+            A dictionary that defines the anharmonic vibrational mode
+        """
+        # Either mode_number or mode_vector should be set
+
+        if from_atom_to_atom is None:
+            # currently this is required for there to be a translation
+            raise NotImplementedError
+
+        an_mode = {
+            'type': 'translation',
+        }
+
+        # Adding the configurations to the mode object:
+
+        # Prepares what is in the mode and calculated the tangent of
+        # the mode at the relaxed structure.
+        an_mode = get_trans_dict(from_atom_to_atom, self.vib)
+
+        an_mode.update({
+            # attach settings only for this mode
+            'mode_settings': mode_settings
+        })
+
+        post_modes = self.get_post_modes()
+
+        # Calculate the mode that should be removed from the harmonic
+        # analysis
+        mode_to_remove = calculate_highest_mode_overlap(
+            an_mode['mode_tangent_mass_weighted'], post_modes)
+
+        # Remove this mode from the normal mode spectrum.
+        self.reduced_h_modes = np.delete(post_modes, mode_to_remove, axis=0)
+
+        # TODO: ?? Should I Gramm-smidth orthogonalize?
+
+        self.an_modes.append(an_mode)
+
+        return an_mode
 
     def make_rotation_trajs(self):
         """Make trajectory files for the defined rotations
@@ -295,6 +351,7 @@ class AnharmonicModes:
                     bak_filename='an_mode_'+str(i),
                     traj_filename='an_mode_'+str(i),
                     settings=self.settings)
+
             elif an_mode['type'] == 'vibration':
                 AMA = VibAnalysis(
                     an_mode,
@@ -302,6 +359,15 @@ class AnharmonicModes:
                     bak_filename='an_mode_'+str(i),
                     traj_filename='an_mode_'+str(i),
                     settings=self.settings)
+
+            elif an_mode['type'] == 'translation':
+                AMA = TransAnalysis(
+                    an_mode,
+                    self.atoms,
+                    bak_filename='an_mode_'+str(i),
+                    traj_filename='an_mode_'+str(i),
+                    settings=self.settings)
+
             else:
                 raise ValueError('unknown type')
 
@@ -415,13 +481,13 @@ class AnharmonicModes:
         """
         if len(self.an_modes) > 0:
             for i, an_mode in enumerate(self.an_modes):
-                an_normal_mode = an_mode['mode']
+                an_mode_tangent = an_mode['mode_tangent_mass_weighted']
                 if i == 0:
-                    an_normal_modes = an_normal_mode
+                    an_mode_tangents = an_mode_tangent
                 else:
-                    an_normal_modes = np.vstack((an_normal_modes,
-                                                 an_normal_mode))
-            modes = gramm(np.vstack((an_normal_modes, self.reduced_h_modes)))
+                    an_mode_tangents = np.vstack((an_mode_tangents,
+                                                  an_mode_tangent))
+            modes = gramm(np.vstack((an_mode_tangents, self.reduced_h_modes)))
         else:
             modes = self.reduced_h_modes
 
@@ -472,3 +538,12 @@ def gramm(X):
             for p in range(j)])
         V[j] = V[j]/(np.inner(V[j], V[j]))**(0.5)
     return np.array(V)
+
+
+def calculate_highest_mode_overlap(tangent, modes):
+    """Finding best projection mode:
+    Calculates the projection of each mode on the tangent for the
+    defined modes and returns the index of the mode that has the
+    largest absolute projection on the mode tangent.
+    """
+    return np.argmin([np.abs(np.dot(tangent, mode)) for mode in modes])

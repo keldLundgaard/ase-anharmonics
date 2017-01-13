@@ -120,6 +120,20 @@ class BaseAnalysis(object):
 
             groundstate_energy = self.an_mode['displacement_energies'][0]
 
+        elif self.an_mode['type'] == 'translation':
+            # This is currently a placeholder
+
+            # TODO: fix what the units are here.
+            Hcoeff = 1
+            # Hcoeff = units._hbar**2/(units._amu * units._e
+            #                          * self.an_mode['inertia']*1e-20)
+            # xmin = 0. + fitobj.get_potential_bottom()
+            # is currently not implemented due to required dependency on scipy.
+            xmin = 0.
+            xmax = 3.  # TODO: correct
+            # xmin+2.*np.pi/self.an_mode['symnumber']
+
+            groundstate_energy = self.an_mode['path_energies'][0]
         else:
             raise ValueError("No other types are currently supported")
 

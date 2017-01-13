@@ -10,6 +10,8 @@ from anh_base import BaseAnalysis
 from fit_legendre import NonPeriodicFit
 from fit_settings import fit_settings
 
+from an_utils import to_none_massweight_coor
+
 from scipy.optimize import minimize_scalar
 
 
@@ -321,15 +323,3 @@ class VibAnalysis(BaseAnalysis):
         pos[self.an_mode['indices']] += stepsize * self.mode_xyz.reshape(-1, 3)
 
         return pos
-
-
-def to_none_massweight_coor(mode, atoms, indices=None):
-    """ Transform a massweighted mode to none-massweighted mode"""
-    if indices is None:
-        assert len(atoms) == len(mode)/3, \
-            "The masses to take are not properly defined"
-        indices = range(len(mode)/3)
-
-    m = atoms.get_masses()[indices]
-
-    return np.repeat(m**(-0.5), 3)*mode

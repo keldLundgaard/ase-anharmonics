@@ -1,12 +1,13 @@
 import numpy as np
+from an_utils import to_massweight_coor
 
 
-def get_baserotdic(atoms,
-                   basepos,
-                   branch,
-                   symnumber=1,
-                   indices=None,
-                   rot_axis=None):
+def get_rot_dict(atoms,
+                 basepos,
+                 branch,
+                 symnumber=1,
+                 indices=None,
+                 rot_axis=None):
     """Define the rotational mode.
     Get rotational axis, mode vector, and moment of inertia
     """
@@ -33,15 +34,18 @@ def get_baserotdic(atoms,
     moment_of_intertia = get_moment_of_intertia(
         atoms[branch], basepos, rot_axis_arr)
 
-    mode = calculate_rot_mode(
+    mode_tangent = calculate_rot_mode(
         atoms, basepos_arr, rot_axis_arr, branch_arr)
 
     # defining the normal mode only in the indices used for the
     # vibrational analysis
     if indices is not None:
-        mode = mode.reshape((-1, 3))[indices].ravel()
+        mode_tangent = mode_tangent.reshape((-1, 3))[indices].ravel()
     else:
         indices = range(len(atoms))
+
+    mode_tangent_mass_weighted = to_massweight_coor(
+        mode_tangent, atoms, indices=indices)
 
     return {
         'type': 'rotation',
@@ -49,7 +53,8 @@ def get_baserotdic(atoms,
         'base_pos': basepos_arr,
         'branch': branch_arr,
         'rot_axis': rot_axis_arr,
-        'mode': mode,
+        'mode_tangent': mode_tangent,
+        'mode_tangent_mass_weighted': mode_tangent_mass_weighted,
         'inertia': moment_of_intertia,
         'indices': indices, }
 
@@ -63,21 +68,6 @@ def get_moment_of_intertia(atoms, x0, r_rot):
     for ap, am in zip(atom_p, atom_m):
         I += sum(np.cross(r_rot, ap-x0)**2.)*am
     return I
-
-
-def to_massweight_coor(mode, atoms):
-    """ Transform a mode to massweighted mode
-
-    atoms : ase atoms object
-        all atoms in molecule
-    mode : numpy array
-        mode with coordinates of all elements
-    """
-    assert (3*atoms.get_number_of_atoms() == len(mode)),\
-        '3 times the number of atoms must equal number of modes'
-    m = atoms.get_masses()
-    mode_weight = mode*np.repeat(m**0.5, 3)
-    return mode_weight
 
 
 def calculate_rot_mode(atoms, base_pos, rot_axis, branch_arr,

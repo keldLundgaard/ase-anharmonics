@@ -5,7 +5,7 @@ import numpy as np
 
 from ase.io.trajectory import Trajectory
 
-from define_rotmode import calculate_rot_mode, rotatepoints
+from define_rot_mode import calculate_rot_mode, rotatepoints
 from anh_base import BaseAnalysis
 from fit_rots import PeriodicFit
 from fit_settings import fit_settings
