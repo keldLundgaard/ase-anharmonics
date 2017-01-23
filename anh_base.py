@@ -126,17 +126,12 @@ class BaseAnalysis(object):
 
         elif self.an_mode['type'] == 'translation':
             warnings.warn(
-                "Warning: translational energies not properly scaled!")
+                "Warning: translational energies needs testing!")
 
-            # TODO: fix what the units are here.
-            Hcoeff = 1
-            # Hcoeff = units._hbar**2/(units._amu * units._e
-            #                          * self.an_mode['inertia']*1e-20)
-            # xmin = 0. + fitobj.get_potential_bottom()
-            # is currently not implemented due to required dependency on scipy.
-            xmin = 0.
-            xmax = 3.  # TODO: correct
-            # xmin+2.*np.pi/self.an_mode['symnumber']
+            xmin = np.min(self.an_mode['displacements'])
+            xmax = np.max(self.an_mode['displacements'])
+
+            Hcoeff = units._hbar**2/(2*units._amu * units._e * 1e-20)
 
             groundstate_energy = self.an_mode['displacement_energies'][0]
         else:
