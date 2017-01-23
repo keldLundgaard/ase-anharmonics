@@ -126,7 +126,7 @@ class BaseAnalysis(object):
 
         elif self.an_mode['type'] == 'translation':
             warnings.warn(
-                "Warning: translational energies needs testing!")
+                "Warning: translational analysis has yet to be fully tested!")
 
             xmin = np.min(self.an_mode['displacements'])
             xmax = np.max(self.an_mode['displacements'])
