@@ -27,8 +27,8 @@ class BaseAnalysis(object):
         self.groundstate_positions = self.atoms.get_positions()
 
         # Making trajectory file for the mode:
-        if isinstance(self.traj_filename, str):
-            filename = self.traj_filename+".traj"
+        if isinstance(self.an_filename, str):
+            filename = self.an_filename+".traj"
             if os.path.exists(filename) and os.path.getsize(filename):
                 mode = 'a'
             else:
@@ -73,19 +73,23 @@ class BaseAnalysis(object):
         """
 
         # Check if the filename is there
-        if self.bak_filename and os.path.exists(self.bak_filename):
+        if self.an_filename and os.path.exists(self.an_filename+'.pckl'):
             # Open backup file
-            backup = pickle.load(paropen(self.bak_filename+'.pckl', 'rb'))
+            backup = pickle.load(paropen(self.an_filename+'.pckl', 'rb'))
 
             # check if the backup correspond to the defined mode
-            for test_key in ['type', 'inertia']:
+            for test_key in ['type']:
                 assert backup[test_key] == self.an_mode[test_key]
+
+            if backup['type'] == 'rotation':
+                assert backup['inertia'] == self.an_mode['inertia']
+
             self.an_mode = backup
 
     def save_to_backup(self):
         """Save current mode object to a pickle file. """
         pickle.dump(self.an_mode,
-                    paropen(self.bak_filename+'.pckl', 'wb'))
+                    paropen(self.an_filename+'.pckl', 'wb'))
 
     def get_thermo(self, fitobj):
         """Calculate thermodynamics of mode. Currently supporting

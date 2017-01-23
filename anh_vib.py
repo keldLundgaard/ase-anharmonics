@@ -22,18 +22,16 @@ class VibAnalysis(BaseAnalysis):
         self,
         an_mode,
         atoms,
-        traj_filename=None,
-        bak_filename=None,
+        an_filename=None,
         settings={},
         log=sys.stdout,
-        verbosity=2,
+        verbosity=1,
     ):
         super(VibAnalysis, self).__init__()
 
         self.an_mode = an_mode
         self.atoms = atoms
-        self.traj_filename = traj_filename
-        self.bak_filename = bak_filename
+        self.an_filename = an_filename
         self.settings = settings
         self.log = log
         self.verbosity = verbosity
@@ -312,7 +310,7 @@ class VibAnalysis(BaseAnalysis):
         self.atoms.set_positions(self.groundstate_positions)
 
         # save to backup file:
-        if self.bak_filename:
+        if self.an_filename:
             self.save_to_backup()
 
     def get_displacement_positions(self, stepsize):

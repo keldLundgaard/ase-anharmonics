@@ -11,12 +11,12 @@ from __init__ import AnharmonicModes
 
 H2 = molecule('H2')
 H2.set_calculator(EMT())
-dyn = QuasiNewton(H2)
+dyn = QuasiNewton(H2, logfile='/dev/null')
 dyn.run(fmax=0.05)
 
 vib = Vibrations(H2, indices=[0, 1])
 vib.run()
-vib.summary()
+vib.summary(log='/dev/null')
 vib.clean()
 
 AM = AnharmonicModes(vib,
@@ -26,13 +26,11 @@ AM = AnharmonicModes(vib,
                      })
 vib_mode = AM.define_vibration(mode_number=-1)
 AM.run()
-AM.summary()
+AM.summary(log='/dev/null')
 AM.clean()
 
 assert abs(AM.get_ZPE() - 1.231) < 1e-3
 assert abs(AM.get_entropic_energy()) < 1e-3
-
-print('\n >> Anharmonics 1000k with initial estimated out to 1.0 kT<<\n')
 
 AM = AnharmonicModes(vib,
                      settings={
@@ -45,7 +43,7 @@ AM = AnharmonicModes(vib,
 vib_mode = AM.define_vibration(mode_number=-1, mode_settings={})
 
 AM.run()
-AM.summary()
+AM.summary(log='/dev/null')
 AM.clean()
 
 assert abs(AM.get_ZPE() - 0.400) < 1e-3

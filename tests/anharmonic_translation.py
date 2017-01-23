@@ -17,12 +17,12 @@ constraint = FixAtoms(mask=[a.symbol == 'Au' for a in slab])
 slab.set_constraint(constraint)
 slab.set_calculator(EMT())
 
-dyn = QuasiNewton(slab)
+dyn = QuasiNewton(slab, logfile='/dev/null')
 dyn.run(fmax=0.05)
 
 vib = Vibrations(slab, indices=[8])
 vib.run()
-vib.summary()
+vib.summary(log='/dev/null')
 vib.clean()
 
 AM = AnharmonicModes(vibrations_object=vib)
@@ -31,7 +31,7 @@ translational_mode = AM.define_translation(
     from_atom_to_atom=[4, 6]  # move from top position on 4 to 6
 )
 AM.run()
-AM.summary()
+AM.summary(log='/dev/null')
 AM.clean()
 
 assert abs(AM.get_ZPE() - 0.400) < 1e-3

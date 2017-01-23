@@ -17,13 +17,13 @@ constraint = FixAtoms(mask=[a.symbol == 'Al' for a in slab])
 slab.set_constraint(constraint)
 slab.set_calculator(EMT())
 
-dyn = QuasiNewton(slab)
+dyn = QuasiNewton(slab, logfile='/dev/null')
 dyn.run(fmax=0.05)
 
 vib = Vibrations(slab, indices=[8, 9, 10, 11])
 vib.run()
-vib.summary()
-vib.clean()
+vib.summary(log='/dev/null')
+
 
 AM = AnharmonicModes(vibrations_object=vib)
 rot_mode = AM.define_rotation(
@@ -32,8 +32,10 @@ rot_mode = AM.define_rotation(
     symnumber=3)
 
 AM.run()
-AM.summary()
+AM.summary(log='/dev/null')
 AM.clean()
+
+vib.clean()
 
 assert abs(AM.get_ZPE() - 0.405) < 1e-3
 assert abs(AM.get_entropic_energy() - (-0.068)) < 1e-3

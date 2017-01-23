@@ -36,13 +36,18 @@ else:
 vib = Vibrations(slab, indices=[8])
 vib.run()
 vib.summary()
-
+vib.write_mode()
+# vib.clean()
 print('\n >> Anharmonics <<\n')
 
-AM = AnharmonicModes(vibrations_object=vib)
+AM = AnharmonicModes(
+    vibrations_object=vib,
+    settings={'plot_mode': True})
 
 translational_mode = AM.define_translation(
     from_atom_to_atom=[4, 6]  # move from top position on 4 to 6
 )
+
+AM.inspect_anmodes()  # creates trajectory file
 AM.run()
 AM.summary()

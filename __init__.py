@@ -336,8 +336,7 @@ class AnharmonicModes:
             if an_mode['type'] == 'rotation':
                 AMA = RotAnalysis(an_mode,
                                   self.atoms,
-                                  bak_filename='an_mode_'+str(i),
-                                  traj_filename='an_mode_'+str(i)
+                                  an_filename='an_mode_'+str(i),
                                   )
                 AMA.make_rotation_traj(
                     30,
@@ -355,26 +354,22 @@ class AnharmonicModes:
                 AMA = RotAnalysis(
                     an_mode,
                     self.atoms,
-                    bak_filename='an_mode_'+str(i),
-                    traj_filename='an_mode_'+str(i),
+                    an_filename='an_mode_'+str(i),
                     settings=self.settings)
 
             elif an_mode['type'] == 'vibration':
                 AMA = VibAnalysis(
                     an_mode,
                     self.atoms,
-                    bak_filename='an_mode_'+str(i),
-                    traj_filename='an_mode_'+str(i),
+                    an_filename='an_mode_'+str(i),
                     settings=self.settings)
 
             elif an_mode['type'] == 'translation':
                 AMA = TransAnalysis(
                     an_mode,
                     self.atoms,
-                    bak_filename='an_mode_'+str(i),
-                    traj_filename='an_mode_'+str(i),
+                    an_filename='an_mode_'+str(i),
                     settings=self.settings)
-
             else:
                 raise ValueError('unknown type')
 
@@ -383,6 +378,31 @@ class AnharmonicModes:
 
         # Calculate the thermodynamical quantities:
         self.calculate_anharmonic_thermo()
+
+    def inspect_anmodes(self):
+        """Run the analysis"""
+        for i, an_mode in enumerate(self.an_modes):
+            if i > 0:
+                warnings.warn(
+                    "Warning: Module has not been tested for multiple \
+                    anharmonic modes! Might not work properly.")
+
+            if an_mode['type'] == 'rotation':
+                raise NotImplementedError(" not implemented yet")
+
+            elif an_mode['type'] == 'vibration':
+                raise NotImplementedError(" not implemented yet")
+
+            elif an_mode['type'] == 'translation':
+                AMA = TransAnalysis(
+                    an_mode,
+                    self.atoms,
+                    an_filename='an_mode_'+str(i),
+                    settings=self.settings)
+            else:
+                raise ValueError('unknown type')
+
+            AMA.make_inspection_traj()
 
     def calculate_anharmonic_thermo(self):
         """Calculates the thermodynamic quantities for the
@@ -479,8 +499,8 @@ class AnharmonicModes:
                   (i+len(self.an_modes), 1000 * e, c, f, c, 'Harmonic'))
         write(21*'-'+'\n')
 
-        write('Zero-point energy: %.3f \n' % self.ZPE)
-        write('Entropic energy: %.3f \n' % self.entropic_energy)
+        write('Zero-point energy: %.3f eV \n' % self.ZPE)
+        write('Entropic energy: %.3f eV \n' % self.entropic_energy)
 
     def get_ZPE_of_harmonic_subspace(self, freq=False):
         """Zero-point energy of harmonic subspace

@@ -1,7 +1,8 @@
 import sys
 
 import numpy as np
-# from ase.io.trajectory import Trajectory
+
+from ase.io.trajectory import Trajectory
 
 from anh_base import BaseAnalysis
 from fit_periodic import PeriodicFit
@@ -15,18 +16,16 @@ class TransAnalysis(BaseAnalysis):
         self,
         an_mode,
         atoms,
-        traj_filename=None,
-        bak_filename=None,
+        an_filename=None,
         settings={},
         log=sys.stdout,
-        verbosity=2,
+        verbosity=1,
     ):
         super(TransAnalysis, self).__init__()
 
         self.an_mode = an_mode
         self.atoms = atoms
-        self.traj_filename = traj_filename
-        self.bak_filename = bak_filename
+        self.an_filename = an_filename
         self.settings = settings
         self.log = log
         self.verbosity = verbosity
@@ -107,6 +106,9 @@ class TransAnalysis(BaseAnalysis):
 
             self.ZPE_hist.append(ZPE)
             self.Z_mode_hist.append(Z_mode)
+
+        if self.settings.get('plot_mode'):
+            self.plot_potential_energy(fitobj=fitobj)
 
         return ZPE, Z_mode, energies
 
@@ -199,10 +201,14 @@ class TransAnalysis(BaseAnalysis):
 
         self.an_mode['displacement_energies'].append(e)
 
+        # adding to trajectory:
+        if self.traj is not None:
+            self.traj.write(self.atoms)
+
         self.atoms.set_positions(self.groundstate_positions)
 
         # save to backup file:
-        if self.bak_filename:
+        if self.an_filename:
             self.save_to_backup()
 
     def get_translation_positions(self, displacement):
@@ -223,3 +229,51 @@ class TransAnalysis(BaseAnalysis):
             positions[index] += displacement*self.an_mode['mode_tangent']
 
         return positions
+
+    def make_inspection_traj(
+            self,
+            num_displacements=10,
+            filename=None):
+        """Make trajectory file for translational mode to inspect"""
+        if filename is None:
+            filename = self.an_filename+'_inspect.traj'
+
+        traj = Trajectory(filename, mode='w', atoms=self.atoms)
+
+        old_pos = self.atoms.positions.copy()
+        calc = self.atoms.get_calculator()
+        self.atoms.set_calculator()
+
+        displacements = self.get_initial_points(nsamples=num_displacements)
+
+        for displacement in displacements:
+            new_pos = self.get_translation_positions(displacement)
+            self.atoms.set_positions(new_pos)
+            traj.write(self.atoms)
+            self.atoms.set_positions(old_pos)
+
+        self.atoms.set_calculator(calc)
+        traj.close()
+
+    def plot_potential_energy(self, fitobj=None, filename=None):
+        # Not loaded otherwise as that would give problems
+        if filename is None:
+            filename = self.an_filename+'.png'
+
+        import matplotlib.pylab as plt
+
+        x = self.an_mode['displacements']
+        energies = self.an_mode['displacement_energies']
+
+        plt.plot(x, energies, 'x', label='Samples')
+
+        if fitobj is not None:
+            x_fit = np.linspace(min(x), max(x), 200)
+            y_fit = fitobj.fval(x_fit)
+            plt.plot(x_fit, y_fit, '-', label='fit')
+
+        plt.legend()
+        plt.xlabel('Displacement (angstrom)')
+        plt.ylabel('Potential energy (eV)')
+
+        plt.savefig(filename)
