@@ -78,6 +78,11 @@ class BaseAnalysis(object):
             backup = pickle.load(paropen(self.an_filename+'.pckl', 'rb'))
 
             # check if the backup correspond to the defined mode
+            print()
+            print('backup', backup)
+            print()
+            print('mode:', self.an_mode)
+            # print backup[test_key], self.an_mode[test_key]
             for test_key in ['type']:
                 assert backup[test_key] == self.an_mode[test_key]
 

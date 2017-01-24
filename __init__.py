@@ -581,7 +581,7 @@ class AnharmonicModes:
         Checking if the first part is equal to self.pre_names
         E.g. if self.pre_names='an_mode_': an_mode_1.traj is deleted
         """
-        for fn in os.listdir():
+        for fn in os.listdir(os.getcwd()):
             if len(fn.split(self.pre_names)[0]) == 0:
                 os.remove(fn)
 
