@@ -112,6 +112,9 @@ class RotAnalysis(BaseAnalysis):
             self.ZPE_hist.append(ZPE)
             self.Z_mode_hist.append(Z_mode)
 
+        if self.settings.get('plot_mode'):
+            self.plot_potential_energy(fitobj=fitobj)
+
         return ZPE, Z_mode, energies
 
     def sample_new_point(self):

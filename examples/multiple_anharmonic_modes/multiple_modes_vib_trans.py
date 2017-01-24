@@ -34,7 +34,7 @@ AM = AnharmonicModes(
 AM.define_vibration(mode_number=-1)
 AM.define_translation(from_atom_to_atom=[4, 6])
 
-# AM.inspect_anmodes()  # creates trajectory file
+AM.inspect_anmodes()
 AM.run()
 AM.summary()
 AM.clean()

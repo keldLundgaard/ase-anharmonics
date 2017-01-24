@@ -1,7 +1,6 @@
 import sys
 sys.path.append("../..")
-
-from ase.structure import molecule
+from ase.build import molecule
 from ase.optimize import QuasiNewton
 from ase.calculators.emt import EMT
 from ase.vibrations import Vibrations
@@ -25,24 +24,27 @@ AM = AnharmonicModes(vib,
                      settings={
                          'temperature': 1000,
                          'max_disp': 1.,
-                         # 'plot_energy_surface': 1
+                         'plot_mode': True
                      })
 
 vib_mode = AM.define_vibration(mode_number=-1)
 
 AM.run()
+AM.inspect_anmodes()
 AM.summary()
 
 print('\n >> Anharmonics 1000k with initial estimated out to 1.0 kT<<\n')
 
 AM = AnharmonicModes(vib,
+                     pre_names='an_mode_1000K_',
                      settings={
                          'temperature': 1000,
                          'step_multi_kT_disp': 1.0,
                          'max_disp': 1.,
-                         # 'plot_energy_surface': 1  # display plot
+                         'plot_mode': True
                      })
 
 vib_mode = AM.define_vibration(mode_number=-1, mode_settings={})
+AM.inspect_anmodes()
 AM.run()
 AM.summary()

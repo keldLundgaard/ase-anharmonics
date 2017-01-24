@@ -1,7 +1,6 @@
 import sys
 
-from ase.structure import molecule
-from ase.lattice.surface import fcc111, add_adsorbate
+from ase.build import molecule, fcc111, add_adsorbate
 from ase.optimize import QuasiNewton
 from ase.constraints import FixAtoms
 from ase.calculators.emt import EMT

@@ -254,30 +254,3 @@ class TransAnalysis(BaseAnalysis):
 
         self.atoms.set_calculator(calc)
         traj.close()
-
-    def plot_potential_energy(self, fitobj=None, filename=None):
-        # Matplotlib is loaded selectively as it is requires
-        # libraries that are often not installed on clusters
-        import matplotlib.pylab as plt
-
-        if filename is None:
-            filename = self.an_filename+'.png'
-
-        x = self.an_mode['displacements']
-        energies = self.an_mode['displacement_energies']
-
-        plt.plot(x, energies, 'x', label='Samples')
-
-        if fitobj is not None:
-            # plt.title('Number of Fitting coefficients ')
-            x_fit = np.linspace(min(x), max(x), 200)
-            y_fit = fitobj.fval(x_fit)
-            plt.plot(
-                x_fit, y_fit, '-',
-                label='fit with '+str(fitobj.order)+' coefficients')
-
-        plt.legend()
-        plt.xlabel('Displacement (angstrom)')
-        plt.ylabel('Potential energy (eV)')
-
-        plt.savefig(filename)

@@ -160,24 +160,8 @@ class VibAnalysis(BaseAnalysis):
             self.energie_hist = energies
             self.fitobj = fitobj
 
-        if self.settings.get('plot_energy_surface'):
-            import matplotlib.pylab as plt
-            x = np.array(self.an_mode['displacements'])
-            y = np.array(self.an_mode['displacement_energies'])
-            N_fit = 200
-            disp_range = np.max(x) - np.min(x)
-            fit_range = np.linspace(np.min(x)-disp_range/10.,
-                                    np.max(x)+disp_range/10., N_fit)
-            fit_vals = [fitobj.fval(xi) for xi in fit_range]
-
-            plt.plot(x, y, 'x', label='target')
-            plt.plot(fit_range, fit_vals, '-', label='fit')
-
-            fn = self.an_mode.get('info', {}).get('plot_fn')
-            if fn:
-                plt.savefig(fn)
-            else:
-                plt.show()
+        if self.settings.get('plot_mode'):
+            self.plot_potential_energy(fitobj=fitobj)
 
         return ZPE, Z_mode, energies
 

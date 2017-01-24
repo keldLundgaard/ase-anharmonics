@@ -39,10 +39,14 @@ vib.summary()
 
 print('\n >> Anharmonics <<\n')
 
-AM = AnharmonicModes(vibrations_object=vib)
+AM = AnharmonicModes(
+    vibrations_object=vib,
+    settings={'plot_mode': True})
+
 rot_mode = AM.define_rotation(
     basepos=[0., 0., -1.],
     branch=[9, 10, 11],
     symnumber=3)
 AM.run()
+AM.inspect_anmodes()
 AM.summary()
