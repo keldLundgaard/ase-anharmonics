@@ -1,7 +1,6 @@
 import numpy as np
 
 from fit_base import BaseFit
-# import basislib
 
 
 class PeriodicFit(BaseFit):
@@ -75,6 +74,8 @@ class PeriodicFit(BaseFit):
 
         """
 
+        assert order % 2 == 1, 'current trig funcition require uneven order'
+
         Xrow = np.zeros(order)
 
         # First basis value given no derivate
@@ -99,20 +100,11 @@ class PeriodicFit(BaseFit):
         # Range excludes last basis value if order is even
         # which must be added afterwards
         for nthbase in range(2, order, 2):
-            # k = sym*2pi/lambda
-            # lambda = 2*2pi/n
-            # k = sym*n/2
             k = symnumber*nthbase/2
             coeff = k**coeffdiff
             Xrow[nthbase-1] = coeff*basefuncs[0](k*theta)
             Xrow[nthbase] = coeff*basefuncs[1](k*theta)
 
-        # Adding a last cos/sin function, half base
-        #   if even number of orders
-        if order % 2 == 0:
-            k = symnumber*(order/2)
-            coeff = k**coeffratio
-            Xrow[order-1] = coeff*basefuncs[0](k*theta)
         return Xrow
 
     def cos_pos(self, angle):

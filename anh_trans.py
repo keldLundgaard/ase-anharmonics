@@ -39,7 +39,7 @@ class TransAnalysis(BaseAnalysis):
         self.temperature = settings.get('temperature', 300)  # Kelvin
         self.use_force_consistent = settings.get('use_force_consistent', False)
         # Convergence tolerance
-        self.rel_Z_mode_change_tol = settings.get('rel_Z_mode_tol', 0.005)
+        self.rel_Z_mode_change_tol = settings.get('rel_Z_mode_tol', 0.01)
 
         self.initialize()
 
@@ -269,9 +269,12 @@ class TransAnalysis(BaseAnalysis):
         plt.plot(x, energies, 'x', label='Samples')
 
         if fitobj is not None:
+            # plt.title('Number of Fitting coefficients ')
             x_fit = np.linspace(min(x), max(x), 200)
             y_fit = fitobj.fval(x_fit)
-            plt.plot(x_fit, y_fit, '-', label='fit')
+            plt.plot(
+                x_fit, y_fit, '-',
+                label='fit with '+str(fitobj.order)+' coefficients')
 
         plt.legend()
         plt.xlabel('Displacement (angstrom)')

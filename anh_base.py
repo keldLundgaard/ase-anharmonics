@@ -171,8 +171,13 @@ class BaseAnalysis(object):
         iterations = len(self.ZPE_hist)
 
         if iterations > 2:
-            rel_Z_mode_change = ((self.Z_mode_hist[-1]-self.Z_mode_hist[0])
-                                 / self.Z_mode_hist[0])
+            rel_Z_mode_change = np.abs(
+                (self.Z_mode_hist[-1]-self.Z_mode_hist[-2])
+                / self.Z_mode_hist[-2])
+
+            if self.verbosity > 1:
+                print('Iteration: ', iterations)
+                print('rel Z_mode change', rel_Z_mode_change)
 
             if iterations > 10:
                 converged = True

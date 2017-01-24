@@ -186,7 +186,7 @@ class BaseFit:
             order = N
         else:
             # Always an uneven number of basis functions
-            order = int(np.ceil(N / 2.)) + 1 - int(np.ceil(N / 2.)) % 2
+            order = N - N % 2 - 1
         return order
 
     @abc.abstractmethod
