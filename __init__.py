@@ -28,8 +28,6 @@ from anh_rot import RotAnalysis
 from anh_vib import VibAnalysis
 from anh_trans import TransAnalysis
 
-import warnings
-
 
 class AnharmonicModes:
     """Calculate anharmonic modes: vibrational and rotational.
@@ -37,111 +35,7 @@ class AnharmonicModes:
     The anharmonic mode extends the harmonic approximation of the
         vibrations module in ASE.
 
-    examples:
-        # Example 1:
-        # Rotational mode
-        # We look at the rotational mode of CH3 on a Al surface
-        # This cannot be properly treated with the harmonic
-        # approximation, which leads to a wrong estimation
-        # of the entropy and zero-point-energy.
-
-        from ase.structure import molecule
-        from ase.lattice.surface import fcc111, add_adsorbate
-        from ase.optimize import QuasiNewton
-        from ase.constraints import FixAtoms
-        from ase.calculators.emt import EMT
-        from ase.vibrations import Vibrations
-
-        from __init__ import AnharmonicModes
-
-        # Setup system
-        slab = fcc111('Al', size=(2, 2, 2), vacuum=3.0)
-        CH3 = molecule('CH3')
-        add_adsorbate(slab, CH3, 2.5, 'ontop')
-
-        # Setup slap
-        constraint = FixAtoms(mask=[a.symbol == 'Al' for a in slab])
-        slab.set_constraint(constraint)
-        slab.set_calculator(EMT())
-
-        # Relax structure
-        dyn = QuasiNewton(slab, trajectory='QN_slab.traj')
-        dyn.run(fmax=0.05)
-
-        # Running vibrational analysis
-        vib = Vibrations(slab, indices=[8, 9, 10, 11])
-        vib.run()
-        vib.summary()
-
-        # Solving rotational mode
-        print('\n >> Anharmonics <<\n')
-
-        AM = AnharmonicModes(vibrations_object=vib)
-        rot_mode = AM.define_rotation(
-            basepos=[0., 0., -1.],
-            branch=[9, 10, 11],
-            symnumber=3)
-        AM.run()
-        AM.summary()
-
-        # QED
-
-        # Example 2:
-        # Anharmonic vibration
-        # This example shows how to determine the vibrational mode
-        # of H2 with higher precision than harmonic mode.
-        # The H2 mode is very strong, which means that there is a large
-        # distance between the zero-point energy (ZPE) and the first excited
-        # energy level. The 1D schrodinger equation is solved like
-        # particle in a box, and the difference between ZPE and the first
-        # first vibrational frequency will therefore not be correctly
-        # calculated, unless we sample the potential energy curve up to a
-        # high energy (many times KT).
-        #
-
-        from ase.structure import molecule
-        from ase.optimize import QuasiNewton
-        from ase.calculators.emt import EMT
-        from ase.vibrations import Vibrations
-
-        from __init__ import AnharmonicModes
-
-        H2 = molecule('H2')
-        H2.set_calculator(EMT())
-        dyn = QuasiNewton(H2)
-        dyn.run(fmax=0.05)
-
-        vib = Vibrations(H2, indices=[0, 1])
-        vib.run()
-        vib.summary()
-
-        print('\n >> Anharmonics 1000k sampling up to 0.25 kT<<\n')
-
-        AM = AnharmonicModes(vib,
-                             settings={
-                                 'temperature': 1000,
-                                 'max_disp': 1.,
-                                 # 'plot_energy_surface': 1
-                             })
-
-        vib_mode = AM.define_vibration(mode_number=-1)
-
-        AM.run()
-        AM.summary()
-
-        print('>> Anharmonics 1000k with initial estimated out to 1.0 kT<<')
-
-        AM = AnharmonicModes(vib,
-                             settings={
-                                 'temperature': 1000,
-                                 'step_multi_kT_disp': 1.0,
-                                 'max_disp': 1.,
-                                 # 'plot_energy_surface': 1
-                             })
-
-        vib_mode = AM.define_vibration(mode_number=-1, mode_settings={})
-        AM.run()
-        AM.summary()
+    See examples for how to use the module in the folder examples.
 
     """
     def __init__(

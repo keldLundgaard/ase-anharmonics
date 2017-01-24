@@ -117,8 +117,6 @@ class BaseAnalysis(object):
         if self.an_mode['type'] == 'rotation':
             Hcoeff = units._hbar**2/(units._amu * units._e
                                      * self.an_mode['inertia']*1e-20)
-            # xmin = 0. + fitobj.get_potential_bottom()
-            # is currently not implemented due to required dependency on scipy.
             xmin = 0.
             xmax = xmin+2.*np.pi/self.an_mode['symnumber']
 
