@@ -51,16 +51,16 @@ class RotAnalysis(BaseAnalysis):
         """
 
         # initializing
-        if len(self.an_mode.get('rot_angles', [])) == 0:
-            self.an_mode['rot_angles'] = self.get_initial_angles()
+        if len(self.an_mode.get('displacements', [])) == 0:
+            self.an_mode['displacements'] = self.get_initial_angles()
             self.add_rot_energy(None)  # adding ground state
 
         # getting initial data points
-        while (len(self.an_mode['rot_angles']) >
-               len(self.an_mode.get('rot_energies', []))):
+        while (len(self.an_mode['displacements']) >
+               len(self.an_mode.get('displacement_energies', []))):
 
-            next_angle = self.an_mode['rot_angles'][
-                len(self.an_mode['rot_energies'])]
+            next_angle = self.an_mode['displacements'][
+                len(self.an_mode['displacement_energies'])]
 
             self.add_rot_energy(next_angle)
 
@@ -96,13 +96,13 @@ class RotAnalysis(BaseAnalysis):
 
             if self.fit_forces:
                 fitobj.set_data(
-                    self.an_mode['rot_angles'],
-                    self.an_mode['rot_energies'],
+                    self.an_mode['displacements'],
+                    self.an_mode['displacement_energies'],
                     self.an_mode.get('rot_forces', []))
             else:
                 fitobj.set_data(
-                    self.an_mode['rot_angles'],
-                    self.an_mode['rot_energies'],
+                    self.an_mode['displacements'],
+                    self.an_mode['displacement_energies'],
                     [])
 
             fitobj.run()
@@ -121,8 +121,8 @@ class RotAnalysis(BaseAnalysis):
         the exponenital to the average potential energy of the two angles.
          > exp(avg(E[p0],E[p2])/kT)
         """
-        sample_angles = list(self.an_mode['rot_angles'])
-        angle_energies = list(copy(self.an_mode['rot_energies']))
+        sample_angles = list(self.an_mode['displacements'])
+        angle_energies = list(copy(self.an_mode['displacement_energies']))
 
         angles_sort_args = np.argsort(sample_angles)
 
@@ -139,8 +139,8 @@ class RotAnalysis(BaseAnalysis):
 
         arg = np.argmax(scaled_angle_spacings)
         new_angle = angles[arg]+angle_spacings[arg]/2.
-        self.an_mode['rot_angles'] = list(
-            np.hstack((self.an_mode['rot_angles'], new_angle)))
+        self.an_mode['displacements'] = list(
+            np.hstack((self.an_mode['displacements'], new_angle)))
 
         self.add_rot_energy(new_angle)
 
@@ -159,8 +159,8 @@ class RotAnalysis(BaseAnalysis):
                 new_positions = self.get_rotate_positions(angle)
                 self.atoms.set_positions(new_positions)
 
-        if not self.an_mode.get('rot_energies'):
-            self.an_mode['rot_energies'] = list()
+        if not self.an_mode.get('displacement_energies'):
+            self.an_mode['displacement_energies'] = list()
 
         if self.use_force_consistent:
             e = self.atoms.get_potential_energy(force_consistent=True)
@@ -192,7 +192,7 @@ class RotAnalysis(BaseAnalysis):
         if self.traj is not None:
             self.traj.write(self.atoms)
 
-        self.an_mode['rot_energies'].append(e)
+        self.an_mode['displacement_energies'].append(e)
 
         self.atoms.set_positions(self.groundstate_positions)
 

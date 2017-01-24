@@ -32,8 +32,10 @@ rot_mode = AM.define_rotation(
     symnumber=3)
 
 AM.run()
-AM.summary(log='/dev/null')
+# AM.summary(log='/dev/null')
+AM.summary()
 AM.clean()
 
-assert abs(AM.get_ZPE() - 0.405) < 1e-3
-assert abs(AM.get_entropic_energy() - (-0.068)) < 1e-3
+assert abs(AM.get_ZPE() - 0.277) < 1e-3, AM.get_ZPE()
+assert abs(AM.get_entropic_energy() - (-0.068)) < 1e-3, (
+    AM.get_entropic_energy())

@@ -216,7 +216,13 @@ class AnharmonicModes:
 
         self.an_modes.append(an_mode)
 
-        self.reduced_h_modes = np.delete(self.reduced_h_modes, 0, axis=0)
+        # Removing mode from harmonic spectrum
+        mode_to_remove = calculate_highest_mode_overlap(
+            an_mode['mode_tangent_mass_weighted'],
+            self.get_post_modes())
+
+        self.reduced_h_modes = np.delete(
+            self.reduced_h_modes, mode_to_remove, axis=0)
 
         return an_mode
 
@@ -246,6 +252,9 @@ class AnharmonicModes:
             'type': 'vibration',
         }
         if mode_vector is not None:
+            # This functionality should be easy to implement.
+            # I have left it here to illustrate that it could be added,
+            # but it will not be implemented before a usage shows up.
             raise NotImplementedError
 
         elif mode_number is not None:
@@ -270,6 +279,9 @@ class AnharmonicModes:
             # Deleting the mode that we will treat differently from
             # the harmonic mode space
             self.reduced_h_modes = np.delete(post_modes, mode_number, axis=0)
+        else:
+            raise NotImplementedError(
+                'Need input of either mode_number of mode_vector ')
 
         self.an_modes.append(an_mode)
 
@@ -322,8 +334,6 @@ class AnharmonicModes:
         # Remove this mode from the normal mode spectrum.
         self.reduced_h_modes = np.delete(post_modes, mode_to_remove, axis=0)
 
-        # TODO: ?? Should I Gramm-smidth orthogonalize?
-
         self.an_modes.append(an_mode)
 
         return an_mode
@@ -347,11 +357,6 @@ class AnharmonicModes:
     def run(self):
         """Run the analysis"""
         for i, an_mode in enumerate(self.an_modes):
-            if i > 0:
-                warnings.warn(
-                    "Warning: Module has not been tested for multiple \
-                    anharmonic modes! Might not work properly.")
-
             if an_mode['type'] == 'rotation':
                 AMA = RotAnalysis(
                     an_mode,
@@ -543,11 +548,14 @@ class AnharmonicModes:
                 else:
                     an_mode_tangents = np.vstack((an_mode_tangents,
                                                   an_mode_tangent))
-            modes = gramm(np.vstack((an_mode_tangents, self.reduced_h_modes)))
+            reduced_h_modes = np.delete(
+                gramm(np.vstack((an_mode_tangents, self.reduced_h_modes))),
+                range(len(self.an_modes)),
+                axis=0)
         else:
-            modes = self.reduced_h_modes
+            reduced_h_modes = self.reduced_h_modes
 
-        return modes
+        return reduced_h_modes
 
     def calculate_post_h_freqs(self):
         """Calculate the frequencies of the harmonic subspace.

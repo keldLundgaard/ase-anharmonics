@@ -114,7 +114,7 @@ class BaseAnalysis(object):
             xmin = 0.
             xmax = xmin+2.*np.pi/self.an_mode['symnumber']
 
-            groundstate_energy = self.an_mode['rot_energies'][0]
+            groundstate_energy = self.an_mode['displacement_energies'][0]
 
         elif self.an_mode['type'] == 'vibration':
             Hcoeff = units._hbar**2 / (2.*units._amu * units._e * 1e-20)
@@ -188,3 +188,33 @@ class BaseAnalysis(object):
                     converged = True
 
         return converged
+
+    def plot_potential_energy(self, fitobj=None, filename=None):
+        # Matplotlib is loaded selectively as it is requires
+        # libraries that are often not installed on clusters
+        import matplotlib.pylab as plt
+
+        if filename is None:
+            filename = self.an_filename+'.png'
+
+        x = self.an_mode['displacements']
+        energies = self.an_mode['displacement_energies']
+
+        plt.plot(x, energies, 'x', label='Samples')
+
+        if fitobj is not None:
+            # plt.title('Number of Fitting coefficients ')
+            x_fit = np.linspace(min(x), max(x), 200)
+            y_fit = fitobj.fval(x_fit)
+            plt.plot(
+                x_fit, y_fit, '-',
+                label='fit with '+str(fitobj.order)+' coefficients')
+
+        plt.legend()
+        if self.an_mode['type'] == 'rotation':
+            plt.xlabel('Displacement (radians)')
+        else:
+            plt.xlabel('Displacement (angstrom)')
+        plt.ylabel('Potential energy (eV)')
+
+        plt.savefig(filename)

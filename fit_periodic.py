@@ -74,7 +74,7 @@ class PeriodicFit(BaseFit):
 
         """
 
-        assert order % 2 == 1, 'current trig funcition require uneven order'
+        assert order % 2 == 1, 'current trig fitting requires uneven order'
 
         Xrow = np.zeros(order)
 
@@ -98,7 +98,6 @@ class PeriodicFit(BaseFit):
             basefuncs = [self.sin_pos, self.cos_neg]
 
         # Range excludes last basis value if order is even
-        # which must be added afterwards
         for nthbase in range(2, order, 2):
             k = symnumber*nthbase/2
             coeff = k**coeffdiff
