@@ -1,4 +1,5 @@
 import numpy as np
+# np.seterr(all='raise')
 
 
 def find_optimal_regularization(X, Y, p, Ns=100):
@@ -59,7 +60,6 @@ def find_optimal_regularization(X, Y, p, Ns=100):
         logmin_epe = np.log(omega2_min)
         wlow = logmin_epe - basesearchwidth/(refinespeed**iref)
         whigh = logmin_epe + basesearchwidth/(refinespeed**iref)
-
     return omega2_min
 
 
@@ -103,7 +103,7 @@ def RR(X, Y, p, omega2, W2=None, Vh=None):
     return coefs, Neff
 
 
-def RR_preSVD(X, Y, p, omega2, W2, Vh):
+def RR_preSVD(X, Y, p, omega2, W2, Vh, zero_div_factor=1e-5):
     """
     Ridge Regression (RR) solver:
     Cost = (Xa-y)**2 + omega2*(a-p)**2
@@ -125,9 +125,15 @@ def RR_preSVD(X, Y, p, omega2, W2, Vh):
     """
     # No regularization on the 0, and 1 order term
     R2 = np.ones(len(W2))*omega2
-    R2[0], R2[1] = 0., 0.
+
+    # We do not want to regularize hard on the part of the
+    # space that has a zero derivative. However, setting to
+    # zero can cause numerical problems in some cases.
+    R2[0] *= zero_div_factor
+    R2[1] *= zero_div_factor
+
     inv_W2_reg = (W2 + R2)**-1
-    # inv_W2_reg = (W2 + omega2)**(-1)
+
     XtX_reg_inv = np.dot(np.dot(Vh.T, np.diag(inv_W2_reg)), Vh)
     coefs = np.dot(XtX_reg_inv, np.dot(X.T, Y.T)+omega2*p)
     return coefs
@@ -207,7 +213,7 @@ def bootstrap_master(X, Y, p, omega2_l, Ns=200):
     return err_l, ERR_l, EPE_l, coefs_samples_l
 
 
-def get_bootstrap_samples(Nd, Ns=200, seed=15):
+def get_bootstrap_samples(Nd, Ns=100, seed=15):
     """
     Nd : number of datapoints
     Ns : number of bootstrap samples
@@ -231,6 +237,7 @@ def bootstrap_calc(
     err = np.sum((np.dot(X, coefs.T)-Y)**2/len(Y))
 
     error_samples = []
+
     for i in range(len(samples)):
         W2_si = W2_samples[i]
         Vh_si = Vh_samples[:, :, i]
