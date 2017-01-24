@@ -602,4 +602,4 @@ def calculate_highest_mode_overlap(tangent, modes):
     defined modes and returns the index of the mode that has the
     largest absolute projection on the mode tangent.
     """
-    return np.argmin([np.abs(np.dot(tangent, mode)) for mode in modes])
+    return np.argmax([np.abs(np.dot(tangent, mode)) for mode in modes])
