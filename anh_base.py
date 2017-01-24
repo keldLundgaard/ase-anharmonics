@@ -65,6 +65,9 @@ class BaseAnalysis(object):
                 'Z_mode': Z_mode,
                 'energy_levels': energies})
 
+            if self.an_filename:
+                self.save_to_backup()
+
         return self.an_mode
 
     def restore_backup(self):
@@ -72,6 +75,7 @@ class BaseAnalysis(object):
         file then it will load this into the mode object.
         """
 
+        backup_loaded = 0
         # Check if the filename is there
         if self.an_filename and os.path.exists(self.an_filename+'.pckl'):
             # Open backup file
@@ -85,6 +89,10 @@ class BaseAnalysis(object):
                 assert backup['inertia'] == self.an_mode['inertia']
 
             self.an_mode = backup
+
+            backup_loaded = 1
+
+        return backup_loaded
 
     def save_to_backup(self):
         """Save current mode object to a pickle file. """
