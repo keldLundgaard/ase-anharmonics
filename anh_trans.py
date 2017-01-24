@@ -256,11 +256,12 @@ class TransAnalysis(BaseAnalysis):
         traj.close()
 
     def plot_potential_energy(self, fitobj=None, filename=None):
-        # Not loaded otherwise as that would give problems
+        # Matplotlib is loaded selectively as it is requires
+        # libraries that are often not installed on clusters
+        import matplotlib.pylab as plt
+
         if filename is None:
             filename = self.an_filename+'.png'
-
-        import matplotlib.pylab as plt
 
         x = self.an_mode['displacements']
         energies = self.an_mode['displacement_energies']

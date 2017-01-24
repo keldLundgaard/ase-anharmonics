@@ -125,8 +125,7 @@ class BaseAnalysis(object):
             groundstate_energy = self.an_mode['displacement_energies'][0]
 
         elif self.an_mode['type'] == 'translation':
-            warnings.warn(
-                "Warning: translational analysis has yet to be fully tested!")
+            warnings.warn("Translational analysis needs testing!")
 
             xmin = np.min(self.an_mode['displacements'])
             xmax = np.max(self.an_mode['displacements'])

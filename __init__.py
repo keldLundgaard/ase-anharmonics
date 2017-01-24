@@ -149,6 +149,7 @@ class AnharmonicModes:
         vibrations_object,
         settings={},
         log=sys.stdout,
+        pre_names='an_mode_',
         verbosity=1,
     ):
         """Initialization
@@ -162,6 +163,7 @@ class AnharmonicModes:
                 printed.
         """
         self.vib = vibrations_object
+        self.pre_names = pre_names
         self.settings = settings
 
         if isinstance(log, str):
@@ -354,21 +356,21 @@ class AnharmonicModes:
                 AMA = RotAnalysis(
                     an_mode,
                     self.atoms,
-                    an_filename='an_mode_'+str(i),
+                    an_filename=self.pre_names+str(i),
                     settings=self.settings)
 
             elif an_mode['type'] == 'vibration':
                 AMA = VibAnalysis(
                     an_mode,
                     self.atoms,
-                    an_filename='an_mode_'+str(i),
+                    an_filename=self.pre_names+str(i),
                     settings=self.settings)
 
             elif an_mode['type'] == 'translation':
                 AMA = TransAnalysis(
                     an_mode,
                     self.atoms,
-                    an_filename='an_mode_'+str(i),
+                    an_filename=self.pre_names+str(i),
                     settings=self.settings)
             else:
                 raise ValueError('unknown type')
@@ -382,22 +384,25 @@ class AnharmonicModes:
     def inspect_anmodes(self):
         """Run the analysis"""
         for i, an_mode in enumerate(self.an_modes):
-            if i > 0:
-                warnings.warn(
-                    "Warning: Module has not been tested for multiple \
-                    anharmonic modes! Might not work properly.")
-
             if an_mode['type'] == 'rotation':
-                raise NotImplementedError(" not implemented yet")
+                AMA = RotAnalysis(
+                    an_mode,
+                    self.atoms,
+                    an_filename=self.pre_names+str(i),
+                    settings=self.settings)
 
             elif an_mode['type'] == 'vibration':
-                raise NotImplementedError(" not implemented yet")
+                AMA = VibAnalysis(
+                    an_mode,
+                    self.atoms,
+                    an_filename=self.pre_names+str(i),
+                    settings=self.settings)
 
             elif an_mode['type'] == 'translation':
                 AMA = TransAnalysis(
                     an_mode,
                     self.atoms,
-                    an_filename='an_mode_'+str(i),
+                    an_filename=self.pre_names+str(i),
                     settings=self.settings)
             else:
                 raise ValueError('unknown type')
@@ -570,9 +575,15 @@ class AnharmonicModes:
         return self.hnu_h_post
 
     def clean(self):
-        for i, an_mode in enumerate(self.an_modes):
-            os.remove('an_mode_'+str(i)+'.traj')
-            os.remove('an_mode_'+str(i)+'.pckl')
+        """Clean up directory for all files related to anharmonic
+        analysis.
+
+        Checking if the first part is equal to self.pre_names
+        E.g. if self.pre_names='an_mode_': an_mode_1.traj is deleted
+        """
+        for fn in os.listdir():
+            if len(fn.split(self.pre_names)[0]) == 0:
+                os.remove(fn)
 
 
 def gramm(X):

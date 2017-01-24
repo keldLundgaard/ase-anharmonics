@@ -3,8 +3,7 @@ from copy import copy
 
 import numpy as np
 
-# from ase.parallel import paropen
-# from ase.io.trajectory import Trajectory
+from ase.io.trajectory import Trajectory
 
 from anh_base import BaseAnalysis
 from fit_legendre import NonPeriodicFit
@@ -80,24 +79,34 @@ class VibAnalysis(BaseAnalysis):
 
             self.add_displacement_energy(next_displacement)
 
-    def get_initial_displacements(self):
+    def get_initial_displacements(
+            self,
+            displacements=2,
+            max_kT=None,
+            max_step=True):
         """Returning the displacements for initial sampling of the
         potential energy curve."""
-        n_init_samples = self.settings.get('n_init_samples', 2)
-        assert n_init_samples % 2 == 0, "Only even number of samples allowed"
 
-        step_multi_kT_disp = self.settings.get('step_multi_kT_disp', 0.25)
+        # The following check because of the way we chose the displacements
+        assert displacements % 2 == 0, "Only even number of samples allowed"
+
+        if max_kT is None:
+            step_multi_kT_disp = self.settings.get('step_multi_kT_disp', 0.25)
+        else:
+            step_multi_kT_disp = max_kT
 
         e_hnu = abs(self.an_mode['hnu'])
+
         # initially, we try to move out to where the energy is going up by kT
         step_kT = self.kT/e_hnu * step_multi_kT_disp
         step_size = step_kT
 
         # If the step is too large then we use the max step
-        if step_size > self.max_stepsize:
-            step_size = self.max_stepsize
+        if max_step:
+            if step_size > self.max_stepsize:
+                step_size = self.max_stepsize
 
-        steps = np.linspace(0., step_size, n_init_samples/2+1)[1:]
+        steps = np.linspace(0., step_size, displacements/2+1)[1:]
 
         displacements = np.hstack((-steps[::-1], [0.], steps))
 
@@ -321,3 +330,25 @@ class VibAnalysis(BaseAnalysis):
         pos[self.an_mode['indices']] += stepsize * self.mode_xyz.reshape(-1, 3)
 
         return pos
+
+    def make_inspection_traj(self, points=10, filename=None):
+        """Make trajectory file for the vibrational mode for inspection"""
+        if filename is None:
+            filename = self.an_filename+'_inspect.traj'
+
+        traj = Trajectory(filename, mode='w', atoms=self.atoms)
+
+        old_pos = self.atoms.positions.copy()
+        calc = self.atoms.get_calculator()
+        self.atoms.set_calculator()
+
+        displacements = self.get_initial_displacements(displacements=points)
+
+        for displacement in displacements:
+            new_pos = self.get_displacement_positions(displacement)
+            self.atoms.set_positions(new_pos)
+            traj.write(self.atoms)
+            self.atoms.set_positions(old_pos)
+
+        self.atoms.set_calculator(calc)
+        traj.close()

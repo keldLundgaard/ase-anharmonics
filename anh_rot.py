@@ -231,10 +231,13 @@ class RotAnalysis(BaseAnalysis):
 
         return rot_pos
 
-    def make_rotation_traj(self, num_angles, filename='inspect_an_mode.traj'):
-        """ make a rotational traj file to easily inspect the defined
-        rotational mode.
-        """
+    def make_inspection_traj(
+            self,
+            num_displacements=10,
+            filename=None):
+        """Make trajectory file for translational mode to inspect"""
+        if filename is None:
+            filename = self.an_filename+'_inspect.traj'
 
         traj = Trajectory(filename, mode='w', atoms=self.atoms)
 
@@ -242,7 +245,7 @@ class RotAnalysis(BaseAnalysis):
         calc = self.atoms.get_calculator()
         self.atoms.set_calculator()
 
-        angles = self.get_initial_angles(nsamples=num_angles)
+        angles = self.get_initial_angles(nsamples=num_displacements)
 
         for angle in angles:
             new_pos = self.get_rotate_positions(angle)
