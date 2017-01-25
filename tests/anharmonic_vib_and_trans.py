@@ -33,9 +33,9 @@ AM.define_translation(from_atom_to_atom=[4, 6])
 
 # AM.inspect_anmodes()  # creates trajectory file
 AM.run()
-AM.summary()
+AM.summary(log='/dev/null')
 AM.clean()
 
-assert abs(AM.get_ZPE() - 0.490) < 1e-3, AM.get_ZPE()
+assert abs(AM.get_ZPE() - 0.356) < 1e-3, AM.get_ZPE()
 assert abs(AM.get_entropic_energy() - (-0.004)) < 1e-3, (
     AM.get_entropic_energy())

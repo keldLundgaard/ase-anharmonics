@@ -22,22 +22,19 @@ vib.clean()
 AM = AnharmonicModes(vib,
                      settings={
                          'temperature': 1000,
-                         'max_disp': 1.,
                      })
 vib_mode = AM.define_vibration(mode_number=-1)
 AM.run()
 AM.summary(log='/dev/null')
 AM.clean()
 
-assert abs(AM.get_ZPE() - 1.231) < 1e-3
-assert abs(AM.get_entropic_energy()) < 1e-3
+assert abs(AM.get_ZPE() - 0.497) < 1e-3, AM.get_ZPE()
+assert abs(AM.get_entropic_energy()) < 1e-3, AM.get_entropic_energy()
 
 AM = AnharmonicModes(vib,
                      settings={
                          'temperature': 1000,
                          'step_multi_kT_disp': 1.0,
-                         'max_disp': 1.,
-                         # 'plot_energy_surface': 1  # display plot
                      })
 
 vib_mode = AM.define_vibration(mode_number=-1, mode_settings={})
@@ -46,5 +43,5 @@ AM.run()
 AM.summary(log='/dev/null')
 AM.clean()
 
-assert abs(AM.get_ZPE() - 0.368) < 1e-3, AM.get_ZPE()
+assert abs(AM.get_ZPE() - 0.379) < 1e-3, AM.get_ZPE()
 assert abs(AM.get_entropic_energy()) < 1e-3, AM.get_entropic_energy()

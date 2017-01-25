@@ -40,7 +40,7 @@ class VibAnalysis(BaseAnalysis):
 
         # settings
         self.fit_forces = settings.get('fit_forces', False)
-        self.min_sample_energy_kT = settings.get('min_sample_energy_kT', 2)
+        self.min_sample_energy_kT = settings.get('min_sample_energy_kT', 3)
         self.temperature = settings.get('temperature', 300)  # Kelvin
         self.use_force_consistent = settings.get('use_force_consistent', False)
         self.rel_Z_mode_change_tol = settings.get('rel_Z_mode_tol', 0.005)
@@ -55,6 +55,7 @@ class VibAnalysis(BaseAnalysis):
             self.settings.get('max_disp', 0.05)  # angstrom
             / np.max(np.linalg.norm(self.mode_xyz.reshape(-1, 3), axis=1))
         )
+
         self.initialize()
 
     def initial_sampling(self):
@@ -189,7 +190,7 @@ class VibAnalysis(BaseAnalysis):
                                      for i in displacement_i]
 
             sampling_energy_span = (
-                np.max(displacement_energies)-np.min(sample_energies))
+                np.max(displacement_energies)-np.min(displacement_energies))
 
             # widen the window of samples
             # Multiplying by 0.9 as it is OK if we shoot under by 10%
@@ -254,12 +255,18 @@ class VibAnalysis(BaseAnalysis):
                              for i in sort_args])
         energies -= np.min(energies)  # subtracting the groundstate energy
 
-        scaled_spacings = [
-            (displacements[i+1]-displacements[i])
-            * np.exp(-(energies[i+1]+energies[i])/(2*self.kT))
-            for i in range(len(energies)-1)]
+        if self.settings.get('use_scaled_spacings', 1):
+            scaled_spacings = [
+                (displacements[i+1]-displacements[i])
+                * np.exp(-(energies[i+1]+energies[i])/(2*self.kT))
+                for i in range(len(energies)-1)]
 
-        max_arg = np.argmax(np.array(scaled_spacings))
+            max_arg = np.argmax(np.array(scaled_spacings))
+        else:
+            spacings = [
+                (displacements[i+1]-displacements[i])
+                for i in range(len(energies)-1)]
+            max_arg = np.argmax(np.array(spacings))
 
         next_displacement = (
             displacements[max_arg+1]+displacements[max_arg]) / 2.

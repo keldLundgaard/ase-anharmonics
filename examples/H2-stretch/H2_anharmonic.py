@@ -23,7 +23,6 @@ print('\n >> Anharmonics 1000k sampling up to 0.25 kT<<\n')
 AM = AnharmonicModes(vib,
                      settings={
                          'temperature': 1000,
-                         'max_disp': 1.,
                          'plot_mode': True
                      })
 
@@ -40,7 +39,6 @@ AM = AnharmonicModes(vib,
                      settings={
                          'temperature': 1000,
                          'step_multi_kT_disp': 1.0,
-                         'max_disp': 1.,
                          'plot_mode': True
                      })
 

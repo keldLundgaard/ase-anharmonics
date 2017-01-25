@@ -203,20 +203,12 @@ class AnharmonicModes:
             # currently this is required for there to be a translation
             raise NotImplementedError
 
-        an_mode = {
-            'type': 'translation',
-        }
-
-        # Adding the configurations to the mode object:
-
         # Prepares what is in the mode and calculated the tangent of
         # the mode at the relaxed structure.
         an_mode = get_trans_dict(from_atom_to_atom, self.vib)
 
-        an_mode.update({
-            # attach settings only for this mode
-            'mode_settings': mode_settings
-        })
+        # attach settings only for this mode
+        an_mode.update({'mode_settings': mode_settings})
 
         post_modes = self.get_post_modes()
 
@@ -250,29 +242,8 @@ class AnharmonicModes:
 
     def run(self):
         """Run the analysis"""
-        for i, an_mode in enumerate(self.an_modes):
-            if an_mode['type'] == 'rotation':
-                AMA = RotAnalysis(
-                    an_mode,
-                    self.atoms,
-                    an_filename=self.pre_names+str(i),
-                    settings=self.settings)
-
-            elif an_mode['type'] == 'vibration':
-                AMA = VibAnalysis(
-                    an_mode,
-                    self.atoms,
-                    an_filename=self.pre_names+str(i),
-                    settings=self.settings)
-
-            elif an_mode['type'] == 'translation':
-                AMA = TransAnalysis(
-                    an_mode,
-                    self.atoms,
-                    an_filename=self.pre_names+str(i),
-                    settings=self.settings)
-            else:
-                raise ValueError('unknown type')
+        for i, _ in enumerate(self.an_modes):
+            AMA = self.get_analysis_object(i)
 
             # adding ZPE, Z_mode, and energy_levels to mode object
             self.an_modes[i] = AMA.run()
@@ -283,30 +254,39 @@ class AnharmonicModes:
     def inspect_anmodes(self):
         """Run the analysis"""
         for i, an_mode in enumerate(self.an_modes):
-            if an_mode['type'] == 'rotation':
+            AMA = self.get_analysis_object(i)
+
+            AMA.make_inspection_traj()
+
+    def get_analysis_object(self, i):
+        """Return the mode object for index i.
+        """
+        an_mode = self.an_modes[i]
+
+        if an_mode['type'] == 'rotation':
                 AMA = RotAnalysis(
                     an_mode,
                     self.atoms,
                     an_filename=self.pre_names+str(i),
                     settings=self.settings)
 
-            elif an_mode['type'] == 'vibration':
-                AMA = VibAnalysis(
-                    an_mode,
-                    self.atoms,
-                    an_filename=self.pre_names+str(i),
-                    settings=self.settings)
+        elif an_mode['type'] == 'vibration':
+            AMA = VibAnalysis(
+                an_mode,
+                self.atoms,
+                an_filename=self.pre_names+str(i),
+                settings=self.settings)
 
-            elif an_mode['type'] == 'translation':
-                AMA = TransAnalysis(
-                    an_mode,
-                    self.atoms,
-                    an_filename=self.pre_names+str(i),
-                    settings=self.settings)
-            else:
-                raise ValueError('unknown type')
+        elif an_mode['type'] == 'translation':
+            AMA = TransAnalysis(
+                an_mode,
+                self.atoms,
+                an_filename=self.pre_names+str(i),
+                settings=self.settings)
+        else:
+            raise ValueError('unknown type')
 
-            AMA.make_inspection_traj()
+        return AMA
 
     def calculate_anharmonic_thermo(self):
         """Calculates the thermodynamic quantities for the
@@ -317,43 +297,48 @@ class AnharmonicModes:
         #
         self.modes = self.get_post_modes()
 
-        hnu_h_post = self.calculate_post_h_freqs()
+        self.hnu_h_post = self.calculate_post_h_freqs()
 
-        Z_all = 1.  # Global partition function
-        ZPE = 0.  # zero point energy
+        # the partition function for each mode
+        self.ZPE_modes = []  # Zero point energy for mode
+        self.Z_modes = []  # partition function for mode
+        self.e_exitation_modes = []  # principle energy of mode
 
-        # The partition harmonic modes' partition functions
-        for e in hnu_h_post:
-            if e.imag == 0 and e.real >= 0.010:
-                Z_mode = 1./(1.-np.exp(-e.real/(self.kT)))
-                Z_all *= Z_mode
-
-        # Adding zero-point energy of harmonic modes
-        ZPE += self.get_ZPE_of_harmonic_subspace()
-
-        an_energies = []
         for i, an_mode in enumerate(self.an_modes):
-            # Add zero-point energy of mode
-            ZPE += an_mode['ZPE']
-
             # Partition function of mode
             Z_mode = 0.
             for ei in an_mode['energy_levels']:
                 Z_mode += np.exp(-(ei-an_mode['ZPE'])/self.kT)
-            Z_all *= Z_mode
 
-            # Print principle energy:
             # Difference between ZPE and first excited energy level
-            e = an_mode['energy_levels'][1]-an_mode['energy_levels'][0]
-            # Energy in inverse cm
+            e_min_exitation = (
+                an_mode['energy_levels'][1]-an_mode['energy_levels'][0])
 
-            an_energies.append(e)
+            self.ZPE_modes.append(an_mode['ZPE'])
+            self.Z_modes.append(Z_mode)
+            self.e_exitation_modes.append(e_min_exitation)
 
-        self.hnu_h_post = hnu_h_post
-        self.ZPE = ZPE
-        self.Z_all = Z_all
-        self.an_energies = an_energies
-        self.entropic_energy = -1*self.kT*np.log(self.Z_all)
+        # The partition harmonic modes' partition functions
+        for e in self.hnu_h_post:
+            if e.imag == 0 and e.real >= 0.010:
+                Z_mode = 1./(1.-np.exp(-e.real/(self.kT)))
+                ZPE = 0.5 * e.real
+                e_min_exitation = e.real
+            else:
+                ZPE = 0.
+                Z_mode = 1.
+                e_min_exitation = 0.
+
+            self.ZPE_modes.append(ZPE)
+            self.Z_modes.append(Z_mode)
+            self.e_exitation_modes.append(e_min_exitation)
+
+        # Calculating the entropic energy for each mode
+        self.entropic_energy_modes = -1*self.kT*np.log(self.Z_modes)
+
+        # Overall information
+        self.ZPE = np.sum(self.ZPE_modes)
+        self.entropic_energy = np.sum(self.entropic_energy_modes)
 
     def get_ZPE(self):
         return self.ZPE
@@ -384,7 +369,7 @@ class AnharmonicModes:
         write(21*'-'+'\n')
         write('  #    meV     cm^-1    type'+'\n')
         for i, an_mode in enumerate(self.an_modes):
-            e = self.an_energies[i]
+            e = self.e_exitation_modes[i]
             f = e*self.ev__inv_cm
             write('%3d %6.1f   %7.1f    %s \n' %
                   (i, 1000 * e, f, an_mode['type']))

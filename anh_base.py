@@ -131,7 +131,6 @@ class BaseAnalysis(object):
             groundstate_energy = self.an_mode['displacement_energies'][0]
 
         elif self.an_mode['type'] == 'translation':
-            warnings.warn("Translational analysis needs testing!")
 
             xmin = np.min(self.an_mode['displacements'])
             xmax = np.max(self.an_mode['displacements'])
@@ -206,7 +205,7 @@ class BaseAnalysis(object):
         x = self.an_mode['displacements']
         energies = self.an_mode['displacement_energies']
 
-        plt.plot(x, energies, 'x', label='Samples')
+        plt.plot(x, energies, 'x', label=('Samples (%i points)' % (len(x))))
 
         if fitobj is not None:
             # plt.title('Number of Fitting coefficients ')
@@ -224,3 +223,4 @@ class BaseAnalysis(object):
         plt.ylabel('Potential energy (eV)')
 
         plt.savefig(filename)
+        plt.clf()
