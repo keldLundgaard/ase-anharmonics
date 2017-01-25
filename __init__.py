@@ -432,32 +432,25 @@ class AnharmonicModes:
             log = paropen(log, 'a')
         write = log.write
 
-        write(34*'-'+'\n')
-        write('An-harmonic modes \n')
-        write(34*'-'+'\n')
-        write('  #    ZPE      E_entropy   type'+'\n')
-        write('       meV      meV           '+'\n')
-        write(34*'-'+'\n')
+        write('An-harmonic analysis \n')
+        write(35*'-'+'\n')
+        write('  #    ZPE     E_entropy   type'+'\n')
+        write('       meV     meV           '+'\n')
+        write(35*'-'+'\n')
         for i, an_mode in enumerate(self.an_modes):
             write(
-                '%3d %6.1f  %7.1f      %s \n' %
+                '%3d %6.1f %7.1f      %s \n' %
                 (i, 1000 * self.ZPE_modes[i],
                     1000 * self.entropic_energy_modes[i],
                     an_mode['type']))
-        write(34*'-'+'\n')
-        write('\n')
-        # Summaries the harmonic modes
-        write('Harmonic subspace modes \n')
-        write(25*'-'+'\n')
-        write('  #    ZPE      E_entropy '+'\n')
-        write('       meV      meV       '+'\n')
-        write(25*'-'+'\n')
+        write(35*'*'+'\n')
         for i in range(len(self.an_modes), len(self.ZPE_modes)):
             write(
-                '%3d %6.1f  %7.1f  \n' %
+                '%3d %6.1f %7.1f      %s \n' %
                 (i, 1000 * self.ZPE_modes[i],
-                    1000 * self.entropic_energy_modes[i]))
-        write(25*'-'+'\n')
+                    1000 * self.entropic_energy_modes[i],
+                    'Harmonic'))
+        write(35*'-'+'\n')
 
         # to convert to cm^-1
         # f = e * self.ev__inv_cm

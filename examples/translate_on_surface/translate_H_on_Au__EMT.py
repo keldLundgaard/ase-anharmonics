@@ -23,11 +23,12 @@ dyn = QuasiNewton(slab)
 dyn.run(fmax=0.05)
 
 # Running vibrational analysis
+
 vib = Vibrations(slab, indices=[8])
 vib.run()
 vib.summary()
+print()
 
-print('\n >> Anharmonics <<\n')
 AM = AnharmonicModes(
     vibrations_object=vib,
     settings={'plot_mode': True})
@@ -36,8 +37,9 @@ AM = AnharmonicModes(
 AM.define_translation(from_atom_to_atom=[4, 6])
 AM.inspect_anmodes()  # creates trajectory file
 AM.run()
+AM.pre_summary()
 AM.summary()
 
 # Delete all the generated files
-vib.clean()
-AM.clean()
+# vib.clean()
+# AM.clean()
