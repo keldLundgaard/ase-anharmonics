@@ -53,8 +53,8 @@ class AnharmonicModes:
             settings (optional[dict]): Change default behavior. E.g.
                 "tempurature": 400  # (400K instead of 300K).
             log (optional[str]): name of log file.
-            verbosity (optional[int]): Change how much extra information is
-                printed.
+            verbosity (optional[int]): Change how much extra information
+                is printed.
         """
         self.vib = vibrations_object
         self.pre_names = pre_names
@@ -346,6 +346,72 @@ class AnharmonicModes:
     def get_entropic_energy(self):
         return self.entropic_energy
 
+    def get_harmonic_thermo(self, hnu):
+        ZPE_hmodes = []  # Zero point energy for mode
+        Z_hmodes = []  # partition function for mode
+        e_exitation_hmodes = []  # principle energy of mode
+
+        for e in hnu:
+            if e.imag == 0 and e.real >= 0.010:
+                Z_mode = 1./(1.-np.exp(-e.real/(self.kT)))
+                ZPE = 0.5 * e.real
+                e_min_exitation = e.real
+            else:
+                ZPE = 0.
+                Z_mode = 1.
+                e_min_exitation = 0.
+            ZPE_hmodes.append(ZPE)
+            Z_hmodes.append(Z_mode)
+            e_exitation_hmodes.append(e_min_exitation)
+
+        entropic_energy_hmodes = -1*self.kT*np.log(Z_hmodes)
+        entropic_energy = np.sum(entropic_energy_hmodes)
+        ZPE_h = np.sum(ZPE_hmodes)
+
+        return {
+            'ZPE_hmodes': ZPE_hmodes,
+            'Z_hmodes': Z_hmodes,
+            'e_exitation_hmodes': e_exitation_hmodes,
+            'entropic_energy_hmodes': entropic_energy_hmodes,
+            'entropic_energy': entropic_energy,
+            'ZPE_h': ZPE_h}
+
+    def pre_summary(self, log=None):
+        """Summary of the harmonic mode analysis. This makes it easier to
+        see what the anharmonic analysis contributes with.
+
+        Args:
+            log : if specified, write output to a different location than
+                stdout. Can be an object with a write() method or the name of
+                a file to create.
+        """
+
+        hnu_thermo = self.get_harmonic_thermo(self.vib.hnu)
+
+        if log is None:
+            log = self.log
+
+        if isinstance(log, str):
+            log = paropen(log, 'a')
+        write = log.write
+
+        write('Harmonic mode analysis: \n')
+        write(25*'-'+'\n')
+        write('  #    ZPE      E_entropy '+'\n')
+        write('  #    meV      meV '+'\n')
+        write(25*'-'+'\n')
+        for i, (ZPE, E_entry) in enumerate(
+                zip(hnu_thermo['ZPE_hmodes'],
+                    hnu_thermo['entropic_energy_hmodes'])):
+            write(
+                '%3d %6.1f  %7.1f  \n' % (i, 1000 * ZPE, 1000 * E_entry))
+
+        write(25*'-'+'\n')
+
+        write('Zero-point energy: %.3f eV \n' % hnu_thermo['ZPE_h'])
+        write('Entropic energy: %.3f eV \n' % hnu_thermo['entropic_energy'])
+        write('\n')
+
     def summary(self, log=None):
         """Summary of the vibrational frequencies.
 
@@ -366,27 +432,35 @@ class AnharmonicModes:
             log = paropen(log, 'a')
         write = log.write
 
-        write(21*'-'+'\n')
-        write('  #    meV     cm^-1    type'+'\n')
+        write(34*'-'+'\n')
+        write('An-harmonic modes \n')
+        write(34*'-'+'\n')
+        write('  #    ZPE      E_entropy   type'+'\n')
+        write('       meV      meV           '+'\n')
+        write(34*'-'+'\n')
         for i, an_mode in enumerate(self.an_modes):
-            e = self.e_exitation_modes[i]
-            f = e*self.ev__inv_cm
-            write('%3d %6.1f   %7.1f    %s \n' %
-                  (i, 1000 * e, f, an_mode['type']))
-
+            write(
+                '%3d %6.1f  %7.1f      %s \n' %
+                (i, 1000 * self.ZPE_modes[i],
+                    1000 * self.entropic_energy_modes[i],
+                    an_mode['type']))
+        write(34*'-'+'\n')
+        write('\n')
         # Summaries the harmonic modes
-        write(21*'-'+'\n')
-        for i, e in enumerate(self.hnu_h_post):
-            if e.imag != 0:
-                c = 'i'
-                e = e.imag
-            else:
-                c = ' '
-                e = e.real
-            f = e * self.ev__inv_cm  # frequency in cm^-1
-            write('%3d %6.1f%s  %7.1f%s   %s \n' %
-                  (i+len(self.an_modes), 1000 * e, c, f, c, 'Harmonic'))
-        write(21*'-'+'\n')
+        write('Harmonic subspace modes \n')
+        write(25*'-'+'\n')
+        write('  #    ZPE      E_entropy '+'\n')
+        write('       meV      meV       '+'\n')
+        write(25*'-'+'\n')
+        for i in range(len(self.an_modes), len(self.ZPE_modes)):
+            write(
+                '%3d %6.1f  %7.1f  \n' %
+                (i, 1000 * self.ZPE_modes[i],
+                    1000 * self.entropic_energy_modes[i]))
+        write(25*'-'+'\n')
+
+        # to convert to cm^-1
+        # f = e * self.ev__inv_cm
 
         write('Zero-point energy: %.3f eV \n' % self.ZPE)
         write('Entropic energy: %.3f eV \n' % self.entropic_energy)
