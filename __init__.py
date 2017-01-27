@@ -15,6 +15,7 @@ from __future__ import division
 
 import sys
 import os
+import warnings
 from copy import copy
 
 import numpy as np
@@ -118,6 +119,8 @@ class AnharmonicModes:
         self.reduced_h_modes = np.delete(
             self.reduced_h_modes, mode_to_remove, axis=0)
 
+        self.check_defined_mode_overlap()
+
         return an_mode
 
     def define_vibration(
@@ -179,6 +182,8 @@ class AnharmonicModes:
 
         self.an_modes.append(an_mode)
 
+        self.check_defined_mode_overlap()
+
         return an_mode
 
     def define_translation(
@@ -222,7 +227,22 @@ class AnharmonicModes:
 
         self.an_modes.append(an_mode)
 
+        self.check_defined_mode_overlap()
+
         return an_mode
+
+    def check_defined_mode_overlap(self, tol=1e-6):
+        if len(self.an_modes) > 1:
+            for i in range(len(self.an_modes)-1):
+                projection = np.abs(np.dot(
+                    self.an_modes[i]['mode_tangent_mass_weighted'],
+                    self.an_modes[-1]['mode_tangent_mass_weighted']))
+                msg = ' '.join([
+                    "Overlap between defined mode",
+                    str(i), 'and', str(len(self.an_modes)-1),
+                    'by', "%0.2e" % projection, '> tol:', "%0.2e" % tol])
+                if projection > tol:
+                    warnings.warn(msg)
 
     def make_rotation_trajs(self):
         """Make trajectory files for the defined rotations
