@@ -31,12 +31,15 @@ print()
 
 AM = AnharmonicModes(
     vibrations_object=vib,
+    pre_names='an_mode_relax_',
     settings={
         'plot_mode': True,
     })
 
 # Translation by moving from top position on 4 to 6
-AM.define_translation(from_atom_to_atom=[4, 6])
+AM.define_translation(
+    from_atom_to_atom=[4, 6],
+    relax_axis=[0, 0, 1])
 AM.inspect_anmodes()  # creates trajectory file
 AM.run()
 AM.pre_summary()

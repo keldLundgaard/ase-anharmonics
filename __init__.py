@@ -189,6 +189,7 @@ class AnharmonicModes:
     def define_translation(
             self,
             from_atom_to_atom=None,
+            relax_axis=None,
             mode_settings={}):
         """Define an anharmonic vibrational mode
 
@@ -212,8 +213,10 @@ class AnharmonicModes:
         # the mode at the relaxed structure.
         an_mode = get_trans_dict(from_atom_to_atom, self.vib)
 
-        # attach settings only for this mode
         an_mode.update({'mode_settings': mode_settings})
+
+        # If there should be an optimization along a direction
+        an_mode.update({'relax_axis': relax_axis})
 
         post_modes = self.get_post_modes()
 
@@ -231,7 +234,12 @@ class AnharmonicModes:
 
         return an_mode
 
-    def check_defined_mode_overlap(self, tol=1e-6):
+    def check_defined_mode_overlap(self):
+        """Checks if there are overlap between the last defined mode
+        and the previous defined modes. Raises a warning if the overlap
+        is higher than a set tolerance.
+        """
+        tol = self.settings.get('defined_modes_overlap_tol', 1e-6)
         if len(self.an_modes) > 1:
             for i in range(len(self.an_modes)-1):
                 projection = np.abs(np.dot(

@@ -28,7 +28,10 @@ vib.clean()
 
 AM = AnharmonicModes(
     vibrations_object=vib,
-    settings={'plot_mode': True})
+    settings={
+        'plot_mode': True,
+        # 'defined_modes_overlap_tol': 1e-9
+    })
 
 AM.define_vibration(mode_number=-1)
 AM.define_translation(from_atom_to_atom=[4, 6])

@@ -3,6 +3,9 @@ import sys
 import numpy as np
 
 from ase.io.trajectory import Trajectory
+from ase.constraints import FixedLine, FixAtoms
+from ase.optimize import QuasiNewton
+from ase.visualize import view
 
 from anh_base import BaseAnalysis
 from fit_periodic import PeriodicFit
@@ -174,6 +177,31 @@ class TransAnalysis(BaseAnalysis):
             if displacement != self.an_mode['transition_path_length']:
                 self.atoms.set_positions(
                     self.get_translation_positions(displacement))
+
+                # Do 1D optimization
+                axis_relax = self.an_mode.get('relax_axis')
+                if axis_relax:
+                    c = []
+                    for i in self.an_mode['indices']:
+                        c.append(FixedLine(i, axis_relax))
+                    # Fixing everything that is not the vibrating part
+                    c.append(
+                        FixAtoms(mask=[
+                            i not in self.an_mode['indices']
+                            for i in range(len(self.atoms))]))
+                    self.atoms.set_constraint(c)
+
+                    old = self.atoms.get_positions()
+
+                    # Optimization
+                    dyn = QuasiNewton(self.atoms)
+                    dyn.run(fmax=0.05)
+                    self.atoms.set_constraint([])
+
+                    new = self.atoms.get_positions()
+                    print(new-old)
+                    # raise
+                    # raise NotImplementedError(" Pending feature")
 
         if not self.an_mode.get('displacement_energies'):
             self.an_mode['displacement_energies'] = list()
