@@ -27,7 +27,6 @@ dyn.run(fmax=0.05)
 vib = Vibrations(slab, indices=[8])
 vib.run()
 vib.summary()
-print()
 
 AM = AnharmonicModes(
     vibrations_object=vib,

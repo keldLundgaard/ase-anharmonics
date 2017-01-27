@@ -191,17 +191,9 @@ class TransAnalysis(BaseAnalysis):
                             for i in range(len(self.atoms))]))
                     self.atoms.set_constraint(c)
 
-                    old = self.atoms.get_positions()
-
                     # Optimization
-                    dyn = QuasiNewton(self.atoms)
+                    dyn = QuasiNewton(self.atoms, logfile='/dev/null')
                     dyn.run(fmax=0.05)
-                    self.atoms.set_constraint([])
-
-                    new = self.atoms.get_positions()
-                    print(new-old)
-                    # raise
-                    # raise NotImplementedError(" Pending feature")
 
         if not self.an_mode.get('displacement_energies'):
             self.an_mode['displacement_energies'] = list()
