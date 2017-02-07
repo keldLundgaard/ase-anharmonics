@@ -20,26 +20,35 @@ slab.set_constraint(constraint)
 slab.set_calculator(EMT())
 
 dyn = QuasiNewton(slab)
-dyn.run(fmax=0.05)
+dyn.run(fmax=0.01)
 
 # Running vibrational analysis
 
 vib = Vibrations(slab, indices=[8])
 vib.run()
 vib.summary()
-print()
+
+# Here the number of initial sampling points are increased such
+# that the potential energy surface of the translation comes
+# out looking good.
+# The result with the default value of 5 (not setting n_initial),
+# will be a potential energy surface that is well fitted,
+# but the thermodynamical properties are converged.
+# This is therefore only for illustration.
 
 AM = AnharmonicModes(
     vibrations_object=vib,
     pre_names='an_mode_relax_',
     settings={
         'plot_mode': True,
+        'n_initial': 10,
     })
 
 # Translation by moving from top position on 4 to 6
 AM.define_translation(
     from_atom_to_atom=[4, 6],
     relax_axis=[0, 0, 1])
+AM.clean()
 AM.inspect_anmodes()  # creates trajectory file
 AM.run()
 AM.pre_summary()

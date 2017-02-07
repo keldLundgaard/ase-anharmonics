@@ -32,6 +32,7 @@ AM = AnharmonicModes(
     vibrations_object=vib,
     settings={
         'plot_mode': True,
+        'use_force_consistent': True
     })
 
 # Translation by moving from top position on 4 to 6

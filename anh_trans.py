@@ -1,5 +1,5 @@
 import sys
-
+import warnings
 import numpy as np
 
 from ase.io.trajectory import Trajectory
@@ -52,7 +52,8 @@ class TransAnalysis(BaseAnalysis):
         """
         # initializing
         if len(self.an_mode.get('displacements', [])) == 0:
-            self.an_mode['displacements'] = self.get_initial_points()
+            self.an_mode['displacements'] = self.get_initial_points(
+                self.settings.get('n_initial', 5))
             self.add_displacement_energy(None)  # adding ground state
 
         while (len(self.an_mode['displacements']) >
@@ -115,7 +116,7 @@ class TransAnalysis(BaseAnalysis):
 
         return ZPE, Z_mode, energies
 
-    def get_initial_points(self, nsamples=5):
+    def get_initial_points(self, nsamples):
         """Get the points to initially calculate the potential
         energies at.
 
@@ -179,21 +180,31 @@ class TransAnalysis(BaseAnalysis):
                     self.get_translation_positions(displacement))
 
                 # Do 1D optimization
+                fix_environment = FixAtoms(mask=[
+                    i not in self.an_mode['indices']
+                    for i in range(len(self.atoms))])
+
                 axis_relax = self.an_mode.get('relax_axis')
                 if axis_relax:
+                    if self.use_force_consistent:
+                        warnings.warn(' '.join([
+                            "relax along axis and force_consistent",
+                            "should only be used with ase releases after",
+                            "Jan 2017. See",
+                            "https://gitlab.com/ase/ase/merge_requests/354"
+                        ]))
                     c = []
                     for i in self.an_mode['indices']:
                         c.append(FixedLine(i, axis_relax))
                     # Fixing everything that is not the vibrating part
-                    c.append(
-                        FixAtoms(mask=[
-                            i not in self.an_mode['indices']
-                            for i in range(len(self.atoms))]))
+                    c.append(fix_environment)
                     self.atoms.set_constraint(c)
 
                     # Optimization
                     dyn = QuasiNewton(self.atoms, logfile='/dev/null')
-                    dyn.run(fmax=0.05)
+                    dyn.run(fmax=self.settings.get('fmax', 0.05))
+
+                    self.atoms.set_constraint(fix_environment)
 
         if not self.an_mode.get('displacement_energies'):
             self.an_mode['displacement_energies'] = list()
@@ -264,7 +275,7 @@ class TransAnalysis(BaseAnalysis):
         calc = self.atoms.get_calculator()
         self.atoms.set_calculator()
 
-        displacements = self.get_initial_points(nsamples=num_displacements)
+        displacements = self.get_initial_points(num_displacements)
 
         for displacement in displacements:
             new_pos = self.get_translation_positions(displacement)
