@@ -377,7 +377,7 @@ class AnharmonicModes:
     def get_harmonic_thermo(self, hnu):
         ZPE_hmodes = []  # Zero point energy for mode
         Z_hmodes = []  # partition function for mode
-        e_exitation_hmodes = []  # principle energy of mode
+        e_excitation_hmodes = []  # principle energy of mode
 
         for e in hnu:
             if e.imag == 0 and e.real >= 0.010:
@@ -390,7 +390,7 @@ class AnharmonicModes:
                 e_min_exitation = 0.
             ZPE_hmodes.append(ZPE)
             Z_hmodes.append(Z_mode)
-            e_exitation_hmodes.append(e_min_exitation)
+            e_excitation_hmodes.append(e_min_exitation)
 
         entropic_energy_hmodes = -1*self.kT*np.log(Z_hmodes)
         entropic_energy = np.sum(entropic_energy_hmodes)
@@ -399,7 +399,7 @@ class AnharmonicModes:
         return {
             'ZPE_hmodes': ZPE_hmodes,
             'Z_hmodes': Z_hmodes,
-            'e_exitation_hmodes': e_exitation_hmodes,
+            'e_excitation_hmodes': e_excitation_hmodes,
             'entropic_energy_hmodes': entropic_energy_hmodes,
             'entropic_energy': entropic_energy,
             'ZPE_h': ZPE_h}
@@ -424,17 +424,19 @@ class AnharmonicModes:
         write = log.write
 
         write('Harmonic mode analysis: \n')
-        write(25*'-'+'\n')
-        write('  #    ZPE      E_entropy '+'\n')
-        write('  #    meV      meV '+'\n')
-        write(25*'-'+'\n')
-        for i, (ZPE, E_entry) in enumerate(
+        write(27*'-'+'\n')
+        write('  #    ZPE    E_exc   E_ent '+'\n')
+        write('  #    meV    meV     meV '+'\n')
+        write(27*'-'+'\n')
+        for i, (ZPE, E_ex, E_entry) in enumerate(
                 zip(hnu_thermo['ZPE_hmodes'],
+                    hnu_thermo['e_excitation_hmodes'],
                     hnu_thermo['entropic_energy_hmodes'])):
             write(
-                '%3d %6.1f  %7.1f  \n' % (i, 1000 * ZPE, 1000 * E_entry))
+                '%3d %6.1f %6.1f %7.1f  \n' %
+                (i, 1000 * ZPE, 1000 * E_ex, 1000 * E_entry))
 
-        write(25*'-'+'\n')
+        write(27*'-'+'\n')
 
         write('Zero-point energy: %.3f eV \n' % hnu_thermo['ZPE_h'])
         write('Entropic energy: %.3f eV \n' % hnu_thermo['entropic_energy'])
@@ -446,6 +448,10 @@ class AnharmonicModes:
         This is similar to the vibrational module, but it adds information
         about the anharmonic modes and prints the entropic energy
         contribution.
+
+        E_exc is the excitation energy going from ZPE to the first
+        accessible vibrational energy.
+        E_entropy is the entropy contribution of the mode.
 
         Args:
             log : if specified, write output to a different location than
@@ -461,24 +467,29 @@ class AnharmonicModes:
         write = log.write
 
         write('An-harmonic analysis \n')
-        write(35*'-'+'\n')
-        write('  #    ZPE     E_entropy   type'+'\n')
-        write('       meV     meV           '+'\n')
-        write(35*'-'+'\n')
+        write(40*'-'+'\n')
+        write('  #    ZPE    E_exc   E_ent  type'+'\n')
+        write('  #    meV    meV     meV '+'\n')
+
+        # write('  #    ZPE     E_entropy   type'+'\n')
+        # write('       meV     meV           '+'\n')
+        write(40*'-'+'\n')
         for i, an_mode in enumerate(self.an_modes):
             write(
-                '%3d %6.1f %7.1f      %s \n' %
+                '%3d %6.1f %6.1f %7.1f    %s \n' %
                 (i, 1000 * self.ZPE_modes[i],
+                    1000 * self.e_exitation_modes[i],
                     1000 * self.entropic_energy_modes[i],
                     an_mode['type']))
-        write(35*'*'+'\n')
+        write(40*'*'+'\n')
         for i in range(len(self.an_modes), len(self.ZPE_modes)):
             write(
-                '%3d %6.1f %7.1f      %s \n' %
+                '%3d %6.1f %6.1f %7.1f    %s \n' %
                 (i, 1000 * self.ZPE_modes[i],
+                    1000 * self.e_exitation_modes[i],
                     1000 * self.entropic_energy_modes[i],
                     'Harmonic'))
-        write(35*'-'+'\n')
+        write(40*'-'+'\n')
 
         # to convert to cm^-1
         # f = e * self.ev__inv_cm
