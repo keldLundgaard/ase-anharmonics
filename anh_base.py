@@ -86,7 +86,7 @@ class BaseAnalysis(object):
                 assert backup[test_key] == self.an_mode[test_key]
 
             if backup['type'] == 'rotation':
-                assert backup['inertia'] == self.an_mode['inertia']
+                assert abs(backup['inertia'] - self.an_mode['inertia']) < 1e-6
 
             self.an_mode = backup
 

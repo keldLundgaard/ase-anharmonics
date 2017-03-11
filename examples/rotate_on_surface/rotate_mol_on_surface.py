@@ -38,7 +38,13 @@ rot_mode = AM.define_rotation(
     basepos=[0., 0., -1.],
     branch=[9, 10, 11],
     symnumber=3)
+AM.clean()
 AM.run()
 AM.inspect_anmodes()
 AM.pre_summary()
 AM.summary()
+AM.write_h_spacemodes()
+
+# self.reduced_h_modes
+# Inspect the vib modes afterwards
+# View post anharmonic modes

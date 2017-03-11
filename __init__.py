@@ -22,6 +22,7 @@ import numpy as np
 
 import ase.units as units
 from ase.parallel import paropen
+from ase.io.trajectory import Trajectory
 
 from define_rot_mode import get_rot_dict
 from define_trans_mode import get_trans_dict
@@ -112,75 +113,12 @@ class AnharmonicModes:
         self.an_modes.append(an_mode)
 
         # Removing mode from harmonic spectrum
-        mode_to_remove = calculate_highest_mode_overlap(
-            an_mode['mode_tangent_mass_weighted'],
-            self.get_post_modes())
-
         self.reduced_h_modes = np.delete(
-            self.reduced_h_modes, mode_to_remove, axis=0)
-
-        self.check_defined_mode_overlap()
-
-        return an_mode
-
-    def define_vibration(
-            self,
-            mode_number=None,
-            mode_vector=None,
-            mode_settings={}):
-        """Define an anharmonic vibrational mode
-
-        Args:
-            mode_number (optional[int]): The mode number from the vibrational
-                analysis, that should be treated anharmonically.
-            mode_vector(optional[array or list]): Define a vibrational mode
-                that should be treated anharmanically by giving a vector that
-                specifies this vibrations movement.
-                CURRENTLY NOT IMPLEMENTED!
-            mode_settings (optional[dict]): settings to overwrite the main
-                settings for this mode in mode analysis.
-
-        Returns:
-            A dictionary that defines the anharmonic vibrational mode
-        """
-        # Either mode_number or mode_vector should be set
-        assert (mode_number is None) ^ (mode_vector is None)
-        an_mode = {
-            'type': 'vibration',
-        }
-        if mode_vector is not None:
-            # This functionality should be easy to implement.
-            # I have left it here to illustrate that it could be added,
-            # but it will not be implemented before a usage shows up.
-            raise NotImplementedError
-
-        elif mode_number is not None:
-            # Get the current harmonic modes
-            post_modes = self.get_post_modes()
-
-            an_mode.update({
-                # mode tangent that defines the vibrational mode fully
-                'mode_tangent_mass_weighted': post_modes[mode_number],
-                # The mode that we have selected
-                'mode': post_modes[mode_number],
-                # This is added to allow for a sanity check
-                'indices': self.vib.indices,
-                # Calculate the energy of the mode we'll take out
-                'hnu': self.calculate_post_h_freqs()[mode_number],
-                # attach mode number for reference
-                'mode_number': mode_number,
-                # attach settings only for this mode
-                'mode_settings': mode_settings,
-            })
-
-            # Deleting the mode that we will treat differently from
-            # the harmonic mode space
-            self.reduced_h_modes = np.delete(post_modes, mode_number, axis=0)
-        else:
-            raise NotImplementedError(
-                'Need input of either mode_number of mode_vector ')
-
-        self.an_modes.append(an_mode)
+            self.reduced_h_modes,
+            calculate_highest_mode_overlap(
+                an_mode['mode_tangent_mass_weighted'],
+                self.reduced_h_modes),
+            axis=0)
 
         self.check_defined_mode_overlap()
 
@@ -218,15 +156,75 @@ class AnharmonicModes:
         # If there should be an optimization along a direction
         an_mode.update({'relax_axis': relax_axis})
 
-        post_modes = self.get_post_modes()
-
         # Calculate the mode that should be removed from the harmonic
-        # analysis
-        mode_to_remove = calculate_highest_mode_overlap(
-            an_mode['mode_tangent_mass_weighted'], post_modes)
+        # analysis, and remove this mode from the normal mode spectrum.
+        self.reduced_h_modes = np.delete(
+            self.reduced_h_modes,
+            calculate_highest_mode_overlap(
+                an_mode['mode_tangent_mass_weighted'],
+                self.reduced_h_modes),
+            axis=0)
 
-        # Remove this mode from the normal mode spectrum.
-        self.reduced_h_modes = np.delete(post_modes, mode_to_remove, axis=0)
+        self.an_modes.append(an_mode)
+
+        self.check_defined_mode_overlap()
+
+        return an_mode
+
+    def define_vibration(
+            self,
+            mode_number=None,
+            mode_vector=None,
+            mode_settings={}):
+        """Define an anharmonic vibrational mode
+
+        Args:
+            mode_number (optional[int]): The mode number from the vibrational
+                analysis, that should be treated anharmonically.
+            mode_vector(optional[array or list]): Define a vibrational mode
+                that should be treated anharmanically by giving a vector that
+                specifies this vibrations movement.
+                CURRENTLY NOT IMPLEMENTED!
+            mode_settings (optional[dict]): settings to overwrite the main
+                settings for this mode in mode analysis.
+
+        Returns:
+            A dictionary that defines the anharmonic vibrational mode
+        """
+        # Either mode_number or mode_vector should be set
+        assert (mode_number is None) ^ (mode_vector is None)
+        an_mode = {'type': 'vibration', }
+
+        if mode_vector is not None:
+            # This functionality should be easy to implement.
+            # I have left it here to illustrate that it could be added,
+            # but it will not be implemented before a usage shows up.
+            raise NotImplementedError
+
+        elif mode_number is not None:
+            an_mode.update({
+                # mode tangent that defines the vibrational mode fully
+                'mode_tangent_mass_weighted': (
+                    self.reduced_h_modes[mode_number]),
+                # The mode that we have selected
+                'mode': self.reduced_h_modes[mode_number],
+                # This is added to allow for a sanity check
+                'indices': self.vib.indices,
+                # Calculate the energy of the mode we'll take out
+                'hnu': self.calculate_post_h_freqs()[mode_number],
+                # attach mode number for reference
+                'mode_number': mode_number,
+                # attach settings only for this mode
+                'mode_settings': mode_settings,
+            })
+
+            # Deleting the mode that we will treat differently from
+            # the harmonic mode space
+            self.reduced_h_modes = np.delete(
+                self.reduced_h_modes, mode_number, axis=0)
+        else:
+            raise NotImplementedError(
+                'Need input of either mode_number of mode_vector ')
 
         self.an_modes.append(an_mode)
 
@@ -323,7 +321,6 @@ class AnharmonicModes:
         #
         # Calculate rotational mode ZPE and entropy energy
         #
-        self.modes = self.get_post_modes()
 
         self.hnu_h_post = self.calculate_post_h_freqs()
 
@@ -510,38 +507,6 @@ class AnharmonicModes:
             ZPE *= self.ev__inv_cm
         return ZPE
 
-    def get_post_modes(self):
-        """Calculating the harmonic modes after orthogonalization with the
-        newly defined modes from the anharmonic analysis modes.
-
-        All modes here are in massweighted coordinates.
-
-        We stack together the masscoordinated modes of the defined defined
-        anharmonic mode objects. We then remove the weakest modes of the
-        vibrational mode spectrum, and gramm smidth orthogonalize to the rest
-        to the defined modes. We return the output.
-
-        Returns:
-            The harmonic subspace in mass weighted coordinates
-
-        """
-        if len(self.an_modes) > 0:
-            for i, an_mode in enumerate(self.an_modes):
-                an_mode_tangent = an_mode['mode_tangent_mass_weighted']
-                if i == 0:
-                    an_mode_tangents = an_mode_tangent
-                else:
-                    an_mode_tangents = np.vstack((an_mode_tangents,
-                                                  an_mode_tangent))
-            reduced_h_modes = np.delete(
-                gramm(np.vstack((an_mode_tangents, self.reduced_h_modes))),
-                range(len(self.an_modes)),
-                axis=0)
-        else:
-            reduced_h_modes = self.reduced_h_modes
-
-        return reduced_h_modes
-
     def calculate_post_h_freqs(self):
         """Calculate the frequencies of the harmonic subspace.
 
@@ -577,6 +542,31 @@ class AnharmonicModes:
         for fn in os.listdir(os.getcwd()):
             if len(fn.split(self.pre_names)[0]) == 0:
                 os.remove(fn)
+
+    def write_h_spacemodes(self, n=None, kT=units.kB * 300, nimages=30):
+        """Write mode number n to trajectory file. If n is not specified,
+        writes all non-zero modes."""
+        if n is None:
+            for index, energy in enumerate(self.hnu_h_post):
+                if abs(energy) > 1e-5:
+                    self.write_h_spacemodes(n=index, kT=kT, nimages=nimages)
+            return
+
+        mode = self.reduced_h_modes[n] * np.sqrt(kT / abs(self.hnu_h_post[n]))
+        p = self.atoms.positions.copy()
+        traj = Trajectory('%sHarmonic_%02d.traj' % (self.pre_names, n), 'w')
+        calc = self.atoms.get_calculator()
+        self.atoms.set_calculator()
+
+        for x in np.linspace(0, 2 * np.pi, nimages, endpoint=False):
+            pos_delta = np.zeros_like(p)
+            pos_delta[self.vib.indices] += (
+                np.sin(x) * mode.reshape((len(self.vib.indices), 3)))
+            self.atoms.set_positions(p + pos_delta)
+            traj.write(self.atoms)
+        self.atoms.set_positions(p)
+        self.atoms.set_calculator(calc)
+        traj.close()
 
 
 def gramm(X):
