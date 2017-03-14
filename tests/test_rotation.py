@@ -35,6 +35,6 @@ AM.run()
 AM.summary(log='/dev/null')
 AM.clean()
 
-assert abs(AM.get_ZPE() - 0.277) < 1e-3, AM.get_ZPE()
+assert abs(AM.get_ZPE() - 0.405) < 1e-3, AM.get_ZPE()
 assert abs(AM.get_entropic_energy() - (-0.068)) < 1e-3, (
     AM.get_entropic_energy())

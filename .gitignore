@@ -1,0 +1,11 @@
+# example files #
+###################
+*.swp
+*.pckl
+*.traj
+*.pyc
+*log_out
+*.xyz
+.DS_Store
+*.png
+*.cache/
