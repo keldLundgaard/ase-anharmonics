@@ -16,6 +16,7 @@ from __future__ import division
 import sys
 import os
 import warnings
+
 from copy import copy
 
 import numpy as np
@@ -523,12 +524,18 @@ class AnharmonicModes:
 
         G = np.dot(V_, np.dot(F, V_.T))
 
-        omega2_, modes_ = np.linalg.eigh(G)
+        # If we still have harmonic modes
+        if len(G) > 0:
+            omega2_, modes_ = np.linalg.eigh(G)
 
-        s = units._hbar * 1e10 / np.sqrt(units._e * units._amu)
-        self.hnu_h_post = s * omega2_.astype(complex)**0.5  # Energies in eV
+            s = units._hbar * 1e10 / np.sqrt(units._e * units._amu)
+            self.hnu_h_post = s * omega2_.astype(complex)**0.5  # in eV
 
-        self.modes_post = modes_
+            self.modes_post = modes_
+        else:
+            # There are no harmonic modes
+            self.hnu_h_post = []
+            self.modes_post = []
 
         return self.hnu_h_post
 

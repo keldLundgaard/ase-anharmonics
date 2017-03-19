@@ -55,7 +55,6 @@ class VibAnalysis(BaseAnalysis):
             self.settings.get('max_disp', 0.05)  # angstrom
             / np.max(np.linalg.norm(self.mode_xyz.reshape(-1, 3), axis=1))
         )
-
         self.initialize()
 
     def initial_sampling(self):
@@ -96,16 +95,23 @@ class VibAnalysis(BaseAnalysis):
         else:
             step_multi_kT_disp = max_kT
 
-        e_hnu = abs(self.an_mode['hnu'])
+        # If the mode has a real eigenvalue then we can use it
+        # to choose how big a step we should use.
+        if np.real(self.an_mode['hnu']) > 1e-3:
+            e_hnu = abs(self.an_mode['hnu'])
 
-        # initially, we try to move out to where the energy is going up by kT
-        step_kT = self.kT/e_hnu * step_multi_kT_disp
-        step_size = step_kT
-
-        # If the step is too large then we use the max step
-        if max_step:
-            if step_size > self.max_stepsize:
-                step_size = self.max_stepsize
+            # initially, we try to move out to where the energy is going
+            # up by kT
+            step_kT = self.kT/e_hnu * step_multi_kT_disp
+            step_size = step_kT
+            # If the step is too large then we use the max step
+            if max_step:
+                if step_size > self.max_stepsize:
+                    step_size = self.max_stepsize
+        else:
+            # If not then we put the step_size to be very big so
+            #
+            step_size = self.max_stepsize
 
         steps = np.linspace(0., step_size, displacements/2+1)[1:]
 
@@ -186,15 +192,18 @@ class VibAnalysis(BaseAnalysis):
             displacement_i = [i for i, xi in enumerate(x)
                               if direction*(xi-x[arg_min_x]) > 0.]
 
-            displacement_energies = [sample_energies[i]
-                                     for i in displacement_i]
+            if len(displacement_i) > 0:
+                # First we check for if we have gotten the potential defined
+                # good enough, or if we need to sample further out
+                displacement_energies = [sample_energies[i]
+                                         for i in displacement_i]
+                sampling_energy_span = (np.max(displacement_energies) -
+                                        np.min(displacement_energies))
 
-            sampling_energy_span = (
-                np.max(displacement_energies)-np.min(displacement_energies))
-
-            # widen the window of samples
-            # Multiplying by 0.9 as it is OK if we shoot under by 10%
-            if sampling_energy_span < min_energy_sampling*0.9:
+                # widen the window of samples
+                # If the sample is good enough then we can continue
+                if sampling_energy_span > min_energy_sampling:
+                    continue
 
                 # We want to sample the potential energy curve further out
 
@@ -239,6 +248,21 @@ class VibAnalysis(BaseAnalysis):
 
                 self.an_mode['displacements'].append(next_displacement)
                 self.add_displacement_energy(next_displacement)
+            else:
+                # We are in a situation where the furthest point that we
+                # sampled in this direction has the lowest energy.
+                # This could be caused by sampling an imaginary frequency
+                # mode.
+                x_arg_sort = np.argsort(x)
+                if direction == 1:
+                    next_displacement = (
+                        2*x[x_arg_sort[-1]]-x[x_arg_sort[-2]])
+                else:
+                    next_displacement = (
+                        2*x[x_arg_sort[0]]-x[x_arg_sort[1]])
+
+                self.an_mode['displacements'].append(next_displacement)
+                self.add_displacement_energy(next_displacement)
 
         #
         # Find the next point to sample as the one that we think would
@@ -275,7 +299,6 @@ class VibAnalysis(BaseAnalysis):
         self.add_displacement_energy(next_displacement)
 
     def add_displacement_energy(self, displacement):
-        # TODO: This function should be a part of base
 
         if displacement is not None:  # otherwise do a groundstate calculation
             new_positions = self.get_displacement_positions(displacement)

@@ -74,7 +74,6 @@ class BaseAnalysis(object):
         """Restore the mode object from a backup. If there is a backup
         file then it will load this into the mode object.
         """
-
         backup_loaded = 0
         # Check if the filename is there
         if self.an_filename and os.path.exists(self.an_filename+'.pckl'):
