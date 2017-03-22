@@ -183,9 +183,11 @@ class BaseAnalysis(object):
                 print('Iteration: ', iterations)
                 print('rel Z_mode change', rel_Z_mode_change)
 
-            if iterations > 10:
+            if iterations > self.settings.get('max_step_iterations', 15):
                 converged = True
-                print('Exiting after 10 iterations: Cannot converge properly')
+                print(
+                    'Exiting after %i iterations: Cannot converge properly'
+                    % iterations)
                 print('rel_Z_mode_change', rel_Z_mode_change)
             else:
                 if np.abs(rel_Z_mode_change) < self.rel_Z_mode_change_tol:
