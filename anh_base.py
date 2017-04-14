@@ -119,7 +119,8 @@ class BaseAnalysis(object):
             xmin = 0.
             xmax = xmin+2.*np.pi/self.an_mode['symnumber']
 
-            groundstate_energy = self.an_mode['displacement_energies'][0]
+            #groundstate_energy = self.an_mode['displacement_energies'][0]
+            groundstate_energy = min(self.an_mode['displacement_energies'])
 
         elif self.an_mode['type'] == 'vibration':
             Hcoeff = units._hbar**2 / (2.*units._amu * units._e * 1e-20)
@@ -127,6 +128,7 @@ class BaseAnalysis(object):
             xmin = np.min(self.an_mode['displacements'])
             xmax = np.max(self.an_mode['displacements'])
 
+            #groundstate_energy = self.an_mode['displacement_energies'][0]
             groundstate_energy = self.an_mode['displacement_energies'][0]
 
         elif self.an_mode['type'] == 'translation':
@@ -136,7 +138,9 @@ class BaseAnalysis(object):
 
             Hcoeff = units._hbar**2/(2*units._amu * units._e * 1e-20)
 
+            #groundstate_energy = self.an_mode['displacement_energies'][0]
             groundstate_energy = self.an_mode['displacement_energies'][0]
+
         else:
             raise ValueError("No other types are currently supported")
 
