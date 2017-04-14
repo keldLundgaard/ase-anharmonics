@@ -1,5 +1,5 @@
 """Anharmonic modes module for ASE
-#KDW
+
 Docs follows Google's python styling guide:
 http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html
 
@@ -330,21 +330,22 @@ class AnharmonicModes:
         self.Z_modes = []  # partition function for mode
         self.e_exitation_modes = []  # principle energy of mode
         self.entropic_energy_modes = [] #entropy contribution per vibrational mode
-        x = 0.
-        y = 0.
+        E_kT = 0.
+        dZ_dT = 0.
 
         for i, an_mode in enumerate(self.an_modes):
             # Partition function of mode
             Z_mode = 0.
-            y = 0.
+            dZ_dT = 0.
             for ei in an_mode['energy_levels']:
                 Z_mode += np.exp(-(ei-an_mode['ZPE'])/self.kT)
-                y += np.exp(-(ei-an_mode['ZPE'])/self.kT) * (ei-an_mode['ZPE'])
+                dZ_dT += np.exp(-(ei-an_mode['ZPE'])/self.kT) * (ei-an_mode['ZPE'])
 
-            self.entropic_energy_modes.append(self.kT * np.log(Z_mode) + 1./Z_mode * y)
+            self.entropic_energy_modes.append(self.kT * np.log(Z_mode) + 1./Z_mode * dZ_dT)
 
             # Difference between ZPE and first excited energy level
-            e_min_exitation = (an_mode['energy_levels'][1]-an_mode['energy_levels'][0])
+            e_min_exitation = (
+                    an_mode['energy_levels'][1]-an_mode['energy_levels'][0])
 
             self.ZPE_modes.append(an_mode['ZPE'])
             self.Z_modes.append(Z_mode)
@@ -356,8 +357,9 @@ class AnharmonicModes:
                 Z_mode = 1./(1.-np.exp(-e.real/(self.kT)))
                 ZPE = 0.5 * e.real
                 e_min_exitation = e.real
-                x = e_min_exitation/self.kT
-                self.entropic_energy_modes.append(self.kT*(x/(np.exp(x)-1.) - np.log(1.-np.exp(-x))))
+                E_kT = e_min_exitation/self.kT
+                self.entropic_energy_modes.append(
+                        self.kT*(E_kT/(np.exp(E_kT)-1.) - np.log(1.-np.exp(-E_kT))))
 
             else:
                 ZPE = 0.
@@ -365,13 +367,10 @@ class AnharmonicModes:
                 e_min_exitation = 0.
                 self.entropic_energy_modes.append(0.)
 
-            x = 0.
+            E_kT = 0.
             self.ZPE_modes.append(ZPE)
             self.Z_modes.append(Z_mode)
             self.e_exitation_modes.append(e_min_exitation)
-
-        # Calculating the entropic energy for each mode
-        #self.entropic_energy_modes = -1*self.kT*np.log(self.Z_modes)
 
         # Overall information
         self.ZPE = np.sum(self.ZPE_modes)
@@ -388,15 +387,16 @@ class AnharmonicModes:
         Z_hmodes = []  # partition function for mode
         e_excitation_hmodes = []  # principle energy of mode
         entropic_energy_hmodes = [] #entropy contribution per mode
-        x = 0.
+        E_kT = 0.
 
         for e in hnu:
             if e.imag == 0 and e.real >= 0.010:
                 Z_mode = 1./(1.-np.exp(-e.real/(self.kT)))
                 ZPE = 0.5 * e.real
                 e_min_exitation = e.real
-                x = e_min_exitation/self.kT
-                entropic_energy_hmodes.append(self.kT*(x/(np.exp(x)-1.) - np.log(1.-np.exp(-x))))
+                E_kT = e_min_exitation/self.kT
+                entropic_energy_hmodes.append(
+                        self.kT*(E_kT/(np.exp(E_kT)-1.) - np.log(1.-np.exp(-E_kT))))
 
             else:
                 ZPE = 0.
@@ -406,10 +406,8 @@ class AnharmonicModes:
             ZPE_hmodes.append(ZPE)
             Z_hmodes.append(Z_mode)
             e_excitation_hmodes.append(e_min_exitation)
-            x = 0.
+            E_kT = 0.
 
-        #entropic_energy_hmodes = -1*self.kT*np.log(Z_hmodes)
-        
         entropic_energy = np.sum(entropic_energy_hmodes)
         ZPE_h = np.sum(ZPE_hmodes)
 
