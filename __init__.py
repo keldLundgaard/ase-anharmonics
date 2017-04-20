@@ -82,6 +82,7 @@ class AnharmonicModes:
             branch,
             symnumber=1,
             rot_axis=None,
+            orthogonalize=True,
             mode_settings={}):
         """Define a rotation
 
@@ -121,6 +122,12 @@ class AnharmonicModes:
                 self.reduced_h_modes),
             axis=0)
 
+        if orthogonalize:
+            # Orthogonalize to the defined mode
+            self.reduced_h_modes = gramm(np.vstack([
+                an_mode['mode_tangent_mass_weighted'],
+                self.reduced_h_modes]))[1:, :]
+
         self.check_defined_mode_overlap()
 
         return an_mode
@@ -129,6 +136,7 @@ class AnharmonicModes:
             self,
             from_atom_to_atom=None,
             relax_axis=None,
+            orthogonalize=True,
             mode_settings={}):
         """Define an anharmonic vibrational mode
 
@@ -165,6 +173,12 @@ class AnharmonicModes:
                 an_mode['mode_tangent_mass_weighted'],
                 self.reduced_h_modes),
             axis=0)
+
+        if orthogonalize:
+            # Orthogonalize to the defined mode
+            self.reduced_h_modes = gramm(np.vstack([
+                an_mode['mode_tangent_mass_weighted'],
+                self.reduced_h_modes]))[1:, :]
 
         self.an_modes.append(an_mode)
 
@@ -329,7 +343,9 @@ class AnharmonicModes:
         self.ZPE_modes = []  # Zero point energy for mode
         self.Z_modes = []  # partition function for mode
         self.e_exitation_modes = []  # principle energy of mode
-        self.entropic_energy_modes = [] #entropy contribution per vibrational mode
+
+        #entropy contribution per vibrational mode
+        entropic_energy_modes = []
 
         for i, an_mode in enumerate(self.an_modes):
             # Partition function of mode
@@ -337,9 +353,12 @@ class AnharmonicModes:
             dZ_dT = 0.
             for ei in an_mode['energy_levels']:
                 Z_mode += np.exp(-(ei-an_mode['ZPE'])/self.kT)
-                dZ_dT += np.exp(-(ei-an_mode['ZPE'])/self.kT) * (ei-an_mode['ZPE'])
+                dZ_dT += (
+                    np.exp(-(ei - an_mode['ZPE']) / self.kT) *
+                    (ei - an_mode['ZPE']))
 
-            self.entropic_energy_modes.append(self.kT * np.log(Z_mode) + 1./Z_mode * dZ_dT)
+            entropic_energy = self.kT * np.log(Z_mode) + 1./Z_mode * dZ_dT
+            entropic_energy_modes.append(entropic_energy)
 
             # Difference between ZPE and first excited energy level
             e_min_exitation = (
@@ -356,22 +375,25 @@ class AnharmonicModes:
                 ZPE = 0.5 * e.real
                 e_min_exitation = e.real
                 x = e_min_exitation/self.kT
-                self.entropic_energy_modes.append(
+                entropic_energy_modes.append(
                     self.kT * (x/(np.exp(x) - 1.) - np.log(1. - np.exp(-x))))
 
             else:
                 ZPE = 0.
                 Z_mode = 1.
                 e_min_exitation = 0.
-                self.entropic_energy_modes.append(0.)
+                entropic_energy_modes.append(0.)
 
             self.ZPE_modes.append(ZPE)
             self.Z_modes.append(Z_mode)
             self.e_exitation_modes.append(e_min_exitation)
 
+        # Make class variable
+        self.entropic_energy_modes = entropic_energy_modes
+
         # Overall information
         self.ZPE = np.sum(self.ZPE_modes)
-        self.entropic_energy = np.sum(self.entropic_energy_modes)
+        self.entropic_energy = np.sum(entropic_energy_modes)
 
     def get_ZPE(self):
         return self.ZPE
@@ -383,7 +405,7 @@ class AnharmonicModes:
         ZPE_hmodes = []  # Zero point energy for mode
         Z_hmodes = []  # partition function for mode
         e_excitation_hmodes = []  # principle energy of mode
-        entropic_energy_hmodes = [] #entropy contribution per mode
+        entropic_energy_hmodes = []  # entropy per harmonic mode
 
         for e in hnu:
             if e.imag == 0 and e.real >= 0.010:
@@ -392,8 +414,7 @@ class AnharmonicModes:
                 e_min_exitation = e.real
                 x = e_min_exitation/self.kT
                 entropic_energy_hmodes.append(
-                   self.kT*(x/(np.exp(x) - 1.) - np.log(1. - np.exp(-x))))
-
+                    self.kT * (x / (np.exp(x) - 1.) - np.log(1. - np.exp(-x))))
             else:
                 ZPE = 0.
                 Z_mode = 1.
