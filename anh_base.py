@@ -175,7 +175,7 @@ class BaseAnalysis(object):
 
         iterations = len(self.ZPE_hist)
 
-        if iterations > 2:
+        if iterations > self.settings.get('min_step_iterations', 2):
             rel_Z_mode_change = np.abs(
                 (self.Z_mode_hist[-1]-self.Z_mode_hist[-2])
                 / self.Z_mode_hist[-2])
@@ -196,13 +196,13 @@ class BaseAnalysis(object):
 
         return converged
 
-    def plot_potential_energy(self, fitobj=None, filename=None):
+    def plot_potential_energy(self, fitobj=None, filename=None, name_add=''):
         # Matplotlib is loaded selectively as it is requires
         # libraries that are often not installed on clusters
         import matplotlib.pylab as plt
 
         if filename is None:
-            filename = self.an_filename+'.png'
+            filename = self.an_filename + name_add + '.png'
 
         x = self.an_mode['displacements']
         energies = self.an_mode['displacement_energies']

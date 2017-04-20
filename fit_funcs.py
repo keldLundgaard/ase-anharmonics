@@ -29,7 +29,9 @@ def find_optimal_regularization(X, Y, p, Ns=100):
     # The minimum regaluzation value
     omega2_min = float('inf')
     omega2_list = []
-    epe_list = []
+    err_list = []
+    ERR_list = []
+    EPE_list = []
 
     # Tries to find the best value by successively
     # reducing seach area for the omega2 value
@@ -50,17 +52,20 @@ def find_optimal_regularization(X, Y, p, Ns=100):
             wlow, whigh, wsteps)]
 
         BS_res = bootstrap_master(X, Y, p, omega2_range, Ns)
-        _, _, epe_list_i, _ = BS_res
+        err_l, ERR_l, EPE_l, coefs_samples_l = BS_res
 
         omega2_list += omega2_range
-        epe_list += epe_list_i.tolist()
+        EPE_list += EPE_l.tolist()
+        err_list += err_l.tolist()
+        ERR_list += ERR_l.tolist()
 
-        omega2_min = omega2_list[np.argmin(epe_list)]
+        omega2_min = omega2_list[np.argmin(EPE_list)]
         # Update search range
         logmin_epe = np.log(omega2_min)
         wlow = logmin_epe - basesearchwidth/(refinespeed**iref)
         whigh = logmin_epe + basesearchwidth/(refinespeed**iref)
-    return omega2_min
+
+    return omega2_min, omega2_list, EPE_list, err_list, ERR_list
 
 
 def RR(X, Y, p, omega2, W2=None, Vh=None):

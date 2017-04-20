@@ -16,14 +16,14 @@ class PeriodicFit(BaseFit):
     """
 
     def __init__(self, settings):
-        if settings['verbose']:
+        if settings.get('verbose'):
             print('Initialize Periodic fit...'),
 
         super(PeriodicFit, self).__init__(settings)
         self.settings['basistype'] = 'trigonometric'
         self.basisfunction = self.periodicbasefunc
 
-        if settings['verbose']:
+        if settings.get('verbose'):
             print('[DONE]')
 
     def periodicbasefunc(self, angle, ndiff):

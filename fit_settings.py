@@ -37,7 +37,4 @@ fit_settings = {
     # regular data will always have a comperative weight 1.
     'derivateive_weight': 1,
 
-    # Print 'debug' info to terminal as program runs
-    'verbose': 1
-
 }

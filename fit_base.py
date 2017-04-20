@@ -126,20 +126,27 @@ class BaseFit:
         p = np.zeros(self.order)
 
         # Finding the optimal omega2 (regularzation parameter)
-        opt_omega2 = find_optimal_regularization(X, y, p)
+        res = find_optimal_regularization(X, y, p)
+        opt_omega2, omega2_list, epe_list, err_list, ERR_list = res
 
         # Finding the optimal solution
         a0, neff = RR(X, y, p, opt_omega2)
         # yfit = np.dot(X, a0)
 
         # Printing the optimal coeffs
-        if self.settings['verbose']:
+        if self.settings.get('verbose'):
             print('The optimal coefficients:')
             print(', '.join(["{0:0.4f}".format(i) for i in a0]))
             print("Neff : %.2f" % neff)
             print("omega2 opt : %.3e" % opt_omega2)
 
         self.coeffs = a0
+
+        self.opt_omega2 = opt_omega2
+        self.omega2_list = omega2_list
+        self.epe_list = epe_list
+        self.err_list = err_list
+        self.ERR_list = ERR_list
 
     def scale_basismatrix(self, basismatrix):
         """ Scaling the row corresponding to derivatives """
@@ -193,3 +200,30 @@ class BaseFit:
     def setpersistentbasis(self):
         """ Setting the basis vector transformation"""
         pass
+
+    def plot_regularization_curve(self, name_add=''):
+        # Matplotlib is loaded selectively as it is requires
+        # libraries that are often not installed on clusters
+        import matplotlib.pylab as plt
+
+        an_name = self.settings.get('an_name', 'xx')
+        filename = an_name + '_regu_curve' + name_add + '.png'
+
+        sort_order = np.argsort(self.omega2_list)
+        omega2_arr = np.array(self.omega2_list).take(sort_order)
+        epe_arr = np.array(self.epe_list).take(sort_order)
+        err_arr = np.array(self.err_list).take(sort_order)
+        ERR_arr = np.array(self.ERR_list).take(sort_order)
+
+        plt.title('omega2 opt %.2e' % self.opt_omega2)
+
+        plt.semilogx(omega2_arr, epe_arr, '-', label='EPE')
+        plt.semilogx(omega2_arr, err_arr, '--', label='err')
+        plt.semilogx(omega2_arr, ERR_arr, '-.', label='ERR')
+
+        plt.legend(loc=2)
+        plt.xlabel('Omega2')
+        plt.ylabel('eV')
+
+        plt.savefig(filename)
+        plt.clf()
