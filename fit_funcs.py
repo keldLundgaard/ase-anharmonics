@@ -37,13 +37,13 @@ def find_optimal_regularization(X, Y, p, Ns=100):
     # reducing seach area for the omega2 value
 
     # Refinement parameters
-    nrefinements = 4
+    nrefinements = 3
     basesearchwidth = 5.
     refinespeed = 2.5
 
-    wlow = -25
-    whigh = 5
-    wsteps = 5
+    wlow = -35
+    whigh = -5
+    wsteps = 9
 
     # Successive refinements
     for iref in range(nrefinements):
@@ -193,6 +193,7 @@ def bootstrap_master(X, Y, p, omega2_l, Ns=200):
     # Make full SVD on all samples one time for all
     X2_U, X2_W, X2_Vh = np.linalg.svd(np.dot(X.T, X), full_matrices=True)
     W2_samples, Vh_samples = get_samples_svd(X, samples)
+
     for i, omega2 in enumerate(omega2_l):
         res = bootstrap_calc(
             X, Y, p, omega2, samples,
@@ -214,7 +215,11 @@ def bootstrap_master(X, Y, p, omega2_l, Ns=200):
             EPE_l = np.hstack((EPE_l, EPE))
             # ERRi_list_l = np.vstack((ERRi_list_l, ERRi_list))
             coefs_samples_l = np.vstack((coefs_samples_l, coefs_samples))
-
+    # print('omega2_l', omega2_l)
+    # print('err_l', err_l)
+    # print('ERR_l', ERR_l)
+    # print('EPE_l', EPE_l)
+    # STOP
     return err_l, ERR_l, EPE_l, coefs_samples_l
 
 
@@ -232,6 +237,7 @@ def bootstrap_calc(
         X2_W=None, X2_Vh=None,
         W2_samples=None, Vh_samples=None):
 
+    # print(Y-np.mean(Y))
     if X2_W is None or X2_Vh is None:
         X2_U, X2_W, X2_Vh = np.linalg.svd(np.dot(X.T, X), full_matrices=True)
 
@@ -239,7 +245,7 @@ def bootstrap_calc(
         W2_samples, Vh_samples = get_samples_svd(X, samples)
 
     coefs = RR_preSVD(X, Y, p, omega2, X2_W, X2_Vh)
-    err = np.sum((np.dot(X, coefs.T)-Y)**2/len(Y))
+    err = np.mean((np.dot(X, coefs.T) - Y)**2)
 
     error_samples = []
 
@@ -250,8 +256,17 @@ def bootstrap_calc(
         Y_si = Y.take(samples[i])
         a_si = RR_preSVD(X_si, Y_si, p, omega2, W2_si, Vh_si)
 
-        # return a_si, X_si, Y_si, omega2, p
         error = np.dot(X, a_si.T) - Y
+        # print(samples[i])
+        # print(error)
+        # print(error.take(samples[i]))
+        # STOP
+        # not_in_samples = [j for j in range(len(Y)) if j not in samples[i]]
+        # bs_error = np.take(np.dot(X, a_si.T) - Y, not_in_samples)
+        # print(samples[i])
+        # print(not_in_samples)
+        # STOP
+        # error should be for the what was not fitted to
 
         if i == 0:
             a_samples = a_si
@@ -262,13 +277,15 @@ def bootstrap_calc(
 
     ERR = bootstrap_ERR(error_samples, samples)
     EPE = np.sqrt(0.368*err + 0.632*ERR)
-
+    # print(omega2, 'EPE', EPE, 'ERR', ERR)
     return err, ERR, EPE, a_samples
 
 
 def bootstrap_ERR(error_samples, samples):
     """
     """
+
+    # Need to check !!!
     Nd = np.shape(error_samples)[1]
     Ns = len(samples)
     ERRi_list = np.zeros(Nd)
@@ -277,7 +294,12 @@ def bootstrap_ERR(error_samples, samples):
         nsi = np.delete(np.arange(Ns), si)
         error_nsi = error_samples.take(nsi, axis=0).take([i], axis=1)
         ERRi_list[i] = np.mean(error_nsi**2)
+        # print('si', si)
+        # print('nsi', nsi)
+        # print('error_nsi', error_nsi**2)
+        # print('ERRi', np.mean(error_nsi**2))
     ERR = np.mean(ERRi_list)
+    # STOP
     return ERR
 
 

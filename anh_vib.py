@@ -39,10 +39,9 @@ class VibAnalysis(BaseAnalysis):
         assert self.an_mode['type'] == 'vibration'
 
         # settings
-        self.fit_forces = settings.get('fit_forces', False)
         self.min_sample_energy_kT = settings.get('min_sample_energy_kT', 3)
         self.temperature = settings.get('temperature', 300)  # Kelvin
-        self.use_force_consistent = settings.get('use_force_consistent', False)
+        self.use_forces = settings.get('use_forces', False)
         self.rel_Z_mode_change_tol = settings.get('rel_Z_mode_tol', 0.005)
 
         # The maximum displacement of of the atoms in angstrom
@@ -128,15 +127,10 @@ class VibAnalysis(BaseAnalysis):
 
         fitobj = NonPeriodicFit(fit_settings)
 
-        x = np.array(self.an_mode['displacements'])
-        y = np.array(self.an_mode['displacement_energies'])
-
-        if self.fit_forces:
-            fitobj.set_data(
-                x, y,
-                self.an_mode.get('displacement_forces', []))
-        else:
-            fitobj.set_data(x, y, [])
+        fitobj.set_data(
+            np.array(self.an_mode['displacements']),
+            np.array(self.an_mode['displacement_energies']),
+            self.an_mode.get('displacement_forces', []))
 
         fitobj.run()
 
@@ -307,7 +301,7 @@ class VibAnalysis(BaseAnalysis):
         if not self.an_mode.get('displacement_energies'):
             self.an_mode['displacement_energies'] = list()
 
-        if self.use_force_consistent:
+        if self.use_forces:
             e = self.atoms.get_potential_energy(force_consistent=True)
 
             # For the forces, we need the projection of the forces

@@ -36,10 +36,10 @@ class RotAnalysis(BaseAnalysis):
         assert self.an_mode['type'] == 'rotation'
 
         # settings
-        self.fit_forces = settings.get('fit_forces', False)
+
         self.E_max_kT = settings.get('E_max_kT', 5)
         self.temperature = settings.get('temperature', 300)  # Kelvin
-        self.use_force_consistent = settings.get('use_force_consistent', False)
+        self.use_forces = settings.get('use_forces', False)
         # Convergence tolorance
         self.rel_Z_mode_change_tol = settings.get('rel_Z_mode_tol', 0.005)
 
@@ -102,16 +102,10 @@ class RotAnalysis(BaseAnalysis):
 
             fitobj = PeriodicFit(fit_settings)
 
-            if self.fit_forces:
-                fitobj.set_data(
-                    self.an_mode['displacements'],
-                    self.an_mode['displacement_energies'],
-                    self.an_mode.get('rot_forces', []))
-            else:
-                fitobj.set_data(
-                    self.an_mode['displacements'],
-                    self.an_mode['displacement_energies'],
-                    [])
+            fitobj.set_data(
+                self.an_mode['displacements'],
+                self.an_mode['displacement_energies'],
+                self.an_mode.get('displacement_forces', []))
 
             fitobj.run()
 
@@ -184,7 +178,7 @@ class RotAnalysis(BaseAnalysis):
         if not self.an_mode.get('displacement_energies'):
             self.an_mode['displacement_energies'] = list()
 
-        if self.use_force_consistent:
+        if self.use_forces:
             e = self.atoms.get_potential_energy(force_consistent=True)
 
             # For the forces, we need the projection of the forces
@@ -203,10 +197,10 @@ class RotAnalysis(BaseAnalysis):
 
             f = float(np.dot(v_force, mode))
 
-            if not self.an_mode.get('rot_forces'):
-                self.an_mode['rot_forces'] = [f]
+            if not self.an_mode.get('displacement_forces'):
+                self.an_mode['displacement_forces'] = [f]
             else:
-                self.an_mode['rot_forces'].append(f)
+                self.an_mode['displacement_forces'].append(f)
         else:
             e = self.atoms.get_potential_energy()
 
@@ -230,6 +224,11 @@ class RotAnalysis(BaseAnalysis):
             2. * np.pi
             / ((nsamples-1) * self.an_mode['symnumber'])
             * np.array(range(0, nsamples)))
+
+        # Adding pertubations to break symmetries
+        # Seed to make it consistent
+        np.random.seed(1)
+        angles += np.hstack([0, 5e-2 * np.random.random(nsamples-1)])
         return angles
 
     def get_rotate_positions(self, angle):

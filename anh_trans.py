@@ -40,7 +40,7 @@ class TransAnalysis(BaseAnalysis):
         self.fit_forces = settings.get('fit_forces', False)
         self.E_max_kT = settings.get('E_max_kT', 5)
         self.temperature = settings.get('temperature', 300)  # Kelvin
-        self.use_force_consistent = settings.get('use_force_consistent', False)
+        self.use_forces = settings.get('use_forces', False)
         # Convergence tolerance
         self.rel_Z_mode_change_tol = settings.get('rel_Z_mode_tol', 0.01)
 
@@ -93,16 +93,10 @@ class TransAnalysis(BaseAnalysis):
 
             fitobj = PeriodicFit(fit_settings)
 
-            if self.fit_forces:
-                fitobj.set_data(
-                    self.an_mode['displacements'],
-                    self.an_mode['displacement_energies'],
-                    self.an_mode.get('trans_forces', []))
-            else:
-                fitobj.set_data(
-                    self.an_mode['displacements'],
-                    self.an_mode['displacement_energies'],
-                    [])
+            fitobj.set_data(
+                self.an_mode['displacements'],
+                self.an_mode['displacement_energies'],
+                self.an_mode.get('displacement_forces', []))
 
             fitobj.run()
 
@@ -186,7 +180,7 @@ class TransAnalysis(BaseAnalysis):
 
                 axis_relax = self.an_mode.get('relax_axis')
                 if axis_relax:
-                    if self.use_force_consistent:
+                    if self.use_forces:
                         warnings.warn(' '.join([
                             "relax along axis and force_consistent",
                             "should only be used with ase releases after",
@@ -209,7 +203,7 @@ class TransAnalysis(BaseAnalysis):
         if not self.an_mode.get('displacement_energies'):
             self.an_mode['displacement_energies'] = list()
 
-        if self.use_force_consistent:
+        if self.use_forces:
             e = self.atoms.get_potential_energy(force_consistent=True)
 
             # For the forces, we need the projection of the forces
@@ -220,10 +214,10 @@ class TransAnalysis(BaseAnalysis):
             f = float(np.dot(
                 v_force, self.an_mode['mode_tangent']))
 
-            if not self.an_mode.get('trans_forces'):
-                self.an_mode['trans_forces'] = [f]
+            if not self.an_mode.get('displacement_forces'):
+                self.an_mode['displacement_forces'] = [f]
             else:
-                self.an_mode['trans_forces'].append(f)
+                self.an_mode['displacement_forces'].append(f)
         else:
             e = self.atoms.get_potential_energy()
 

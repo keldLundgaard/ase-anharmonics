@@ -194,6 +194,9 @@ class BaseFit:
         else:
             # Always an uneven number of basis functions
             order = N - N % 2 - 1
+
+        if N > 5:
+            order -= 2
         return order
 
     @abc.abstractmethod
@@ -218,8 +221,8 @@ class BaseFit:
         plt.title('omega2 opt %.2e' % self.opt_omega2)
 
         plt.semilogx(omega2_arr, epe_arr, '-', label='EPE')
-        plt.semilogx(omega2_arr, err_arr, '--', label='err')
-        plt.semilogx(omega2_arr, ERR_arr, '-.', label='ERR')
+        plt.semilogx(omega2_arr, np.sqrt(err_arr), '--', label='err')
+        plt.semilogx(omega2_arr, np.sqrt(ERR_arr), '-.', label='ERR')
 
         plt.legend(loc=2)
         plt.xlabel('Omega2')
