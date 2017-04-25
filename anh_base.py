@@ -301,14 +301,12 @@ class BaseAnalysis(object):
 
         dx = np.abs(x[1]-x[0]) / 4
         if len(forces):
-            for i in range(len(x)):
+            for i, (xi, ei, fi) in enumerate(zip(x, energies, forces)):
+                # Need to figure out why negative is needed here
+                df = -1 * dx * fi
                 plt.plot(
-                    [x[i]-dx, x[i]+dx],
-                    [
-                        energies[i] + dx * forces[i],
-                        energies[i] - dx * forces[i]],
-                    '-',
-                    color='k')
+                    [xi-dx, xi+dx], [ei - df, ei + df],
+                    '-', color='k')
 
         plt.plot(x, energies, 'x', label=('Samples (%i points)' % (len(x))))
 
