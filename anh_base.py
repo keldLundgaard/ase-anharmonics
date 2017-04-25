@@ -297,6 +297,18 @@ class BaseAnalysis(object):
 
         x = self.an_mode['displacements']
         energies = self.an_mode['displacement_energies']
+        forces = self.an_mode['displacement_forces']
+
+        dx = np.abs(x[1]-x[0]) / 4
+        if len(forces):
+            for i in range(len(x)):
+                plt.plot(
+                    [x[i]-dx, x[i]+dx],
+                    [
+                        energies[i] + dx * forces[i],
+                        energies[i] - dx * forces[i]],
+                    '-',
+                    color='k')
 
         plt.plot(x, energies, 'x', label=('Samples (%i points)' % (len(x))))
 
@@ -304,6 +316,7 @@ class BaseAnalysis(object):
             # plt.title('Number of Fitting coefficients ')
             x_fit = np.linspace(min(x), max(x), 200)
             y_fit = fitobj.fval(x_fit)
+
             plt.plot(
                 x_fit, y_fit, '-',
                 label='fit with '+str(fitobj.order)+' coefficients')
