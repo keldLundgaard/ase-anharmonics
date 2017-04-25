@@ -1,14 +1,18 @@
 import abc
 import os
 import pickle
-import warnings
+# import warnings
 import numpy as np
 
 import ase.units as units
 from ase.parallel import paropen
 from ase.io.trajectory import Trajectory
 
+from fit_settings import fit_settings
+
 from energy_spectrum_solver import energy_spectrum
+from fit_periodic import PeriodicFit
+from fit_legendre import NonPeriodicFit
 
 
 class BaseAnalysis(object):
@@ -69,6 +73,93 @@ class BaseAnalysis(object):
                 self.save_to_backup()
 
         return self.an_mode
+
+    def sample_until_convergence(self):
+        """ Function will choose new points along the rotation
+        to calculate groundstate of and terminates if the thermodynamical
+        properties have converged for the mode.
+        """
+        # initialize history to check convergence on
+        self.ZPE = []
+        self.entropy_E = []
+
+        # while not converged and samples < max-samples
+        self.ZPE_hist = []
+        self.Z_mode_hist = []
+
+        while self.is_converged() is False:
+            if len(self.ZPE_hist) > 0:
+                # sample a new point
+                self.sample_new_point()
+
+            if self.verbosity > 1:
+                self.log.write('Step %i \n' % len(self.ZPE_hist))
+
+            fitobj = self.get_fit()
+
+            ZPE, Z_mode, energies = self.get_thermo(fitobj)
+
+            self.ZPE_hist.append(ZPE)
+            self.Z_mode_hist.append(Z_mode)
+            if self.settings.get('plot_mode_each_iteration'):
+                self.plot_potential_energy(
+                    fitobj=fitobj,
+                    name_add='_%02d' % len(self.ZPE_hist))
+
+            if self.settings.get('fit_plot_regu_curve_iterations'):
+                fitobj.plot_regularization_curve(
+                    name_add='_%02d' % len(self.ZPE_hist))
+
+        if self.settings.get('plot_mode'):
+            self.plot_potential_energy(fitobj=fitobj)
+
+        if self.settings.get('fit_plot_regu_curve'):
+            fitobj.plot_regularization_curve()
+
+        return ZPE, Z_mode, energies
+
+    def get_fit(self):
+        user_fit_settings = dict(
+            (key[4:], val) for key, val in self.settings.items()
+            if key[:4] == 'fit_')
+        user_fit_settings.update({'an_name': self.an_filename})
+        if self.an_mode['type'] == 'vibration':
+            fit_settings.update({
+                'verbose': False,
+                'search_method': 'iterative'})
+            fit_settings.update(user_fit_settings)
+            fitobj = NonPeriodicFit(fit_settings)
+
+        elif self.an_mode['type'] == 'rotation':
+            fit_settings.update({
+                'symnumber': self.an_mode['symnumber'],
+                'search_method': 'iterative',
+                'iteration': len(self.Z_mode_hist)})
+            fit_settings.update(user_fit_settings)
+            fitobj = PeriodicFit(fit_settings)
+
+        elif self.an_mode['type'] == 'translation':
+            fit_settings.update({
+                'symnumber': 1,
+                'verbose': False,
+                'search_method': 'iterative',
+            })
+            fit_settings.update(user_fit_settings)
+            fitobj = PeriodicFit(fit_settings)
+
+        else:
+            raise ValueError(" Unknown an_mode")
+
+        # Get all settings with fit_ to input in fitting
+
+        fitobj.set_data(
+            self.an_mode['displacements'],
+            self.an_mode['displacement_energies'],
+            self.an_mode.get('displacement_forces', []))
+
+        fitobj.run()
+
+        return fitobj
 
     def restore_backup(self):
         """Restore the mode object from a backup. If there is a backup

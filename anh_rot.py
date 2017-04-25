@@ -7,8 +7,6 @@ from ase.io.trajectory import Trajectory
 
 from define_rot_mode import calculate_rot_mode, rotatepoints
 from anh_base import BaseAnalysis
-from fit_periodic import PeriodicFit
-from fit_settings import fit_settings
 
 
 class RotAnalysis(BaseAnalysis):
@@ -52,7 +50,8 @@ class RotAnalysis(BaseAnalysis):
 
         # initializing
         if len(self.an_mode.get('displacements', [])) == 0:
-            self.an_mode['displacements'] = self.get_initial_angles()
+            self.an_mode['displacements'] = self.get_initial_angles(
+                nsamples=self.settings.get('rot_nsamples', 5))
             self.add_rot_energy(None)  # adding ground state
 
         # getting initial data points
@@ -63,72 +62,6 @@ class RotAnalysis(BaseAnalysis):
                 len(self.an_mode['displacement_energies'])]
 
             self.add_rot_energy(next_angle)
-
-    def sample_until_convergence(self):
-        """ Function will choose new points along the rotation
-        to calculate groundstate of and terminates if the thermodynamical
-        properties have converged for the mode.
-        """
-        # initialize history to check convergence on
-        self.ZPE = []
-        self.entropy_E = []
-
-        # while not converged and samples < max-samples
-        self.ZPE_hist = []
-        self.Z_mode_hist = []
-
-        while self.is_converged() is False:
-            if len(self.ZPE_hist) > 0:
-                # sample a new point
-                self.sample_new_point()
-
-            if self.verbosity > 1:
-                self.log.write('Step %i \n' % len(self.ZPE_hist))
-
-            # Fit mode
-            fit_settings.update({
-                'symnumber': self.an_mode['symnumber'],
-                'search_method': 'iterative',
-                'iteration': len(self.Z_mode_hist),
-                'an_name': self.an_filename,
-            })
-
-            # Get all settings with fit_ to input in fitting
-            fit_settings.update(
-                dict(
-                    (key[4:], val)
-                    for key, val in self.settings.items()
-                    if key[:4] == 'fit_'))
-
-            fitobj = PeriodicFit(fit_settings)
-
-            fitobj.set_data(
-                self.an_mode['displacements'],
-                self.an_mode['displacement_energies'],
-                self.an_mode.get('displacement_forces', []))
-
-            fitobj.run()
-
-            ZPE, Z_mode, energies = self.get_thermo(fitobj)
-
-            self.ZPE_hist.append(ZPE)
-            self.Z_mode_hist.append(Z_mode)
-            if self.settings.get('plot_mode_each_iteration'):
-                self.plot_potential_energy(
-                    fitobj=fitobj,
-                    name_add='_%02d' % len(self.ZPE_hist))
-
-            if self.settings.get('fit_plot_regu_curve_iterations'):
-                fitobj.plot_regularization_curve(
-                    name_add='_%02d' % len(self.ZPE_hist))
-
-        if self.settings.get('plot_mode'):
-            self.plot_potential_energy(fitobj=fitobj)
-
-        if self.settings.get('fit_plot_regu_curve'):
-            fitobj.plot_regularization_curve()
-
-        return ZPE, Z_mode, energies
 
     def sample_new_point(self):
         """What new angle to sample:

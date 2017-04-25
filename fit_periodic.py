@@ -83,7 +83,7 @@ class PeriodicFit(BaseFit):
             Xrow[0] = 1.
 
         # k-coefficient power
-        coeffdiff = ndiff-pdiff
+        coeffdiff = ndiff - pdiff
 
         # The basis functions change with nth derivation
         basefuncs = [None, None]
@@ -99,10 +99,10 @@ class PeriodicFit(BaseFit):
 
         # Range excludes last basis value if order is even
         for nthbase in range(2, order, 2):
-            k = symnumber*nthbase/2
+            k = symnumber * nthbase / 2
             coeff = k**coeffdiff
-            Xrow[nthbase-1] = coeff*basefuncs[0](k*theta)
-            Xrow[nthbase] = coeff*basefuncs[1](k*theta)
+            Xrow[nthbase-1] = coeff * basefuncs[0](k*theta)
+            Xrow[nthbase] = coeff * basefuncs[1](k*theta)
 
         return Xrow
 

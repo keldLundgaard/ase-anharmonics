@@ -5,11 +5,8 @@ import numpy as np
 from ase.io.trajectory import Trajectory
 from ase.constraints import FixedLine, FixAtoms
 from ase.optimize import QuasiNewton
-from ase.visualize import view
 
 from anh_base import BaseAnalysis
-from fit_periodic import PeriodicFit
-from fit_settings import fit_settings
 
 
 class TransAnalysis(BaseAnalysis):
@@ -63,52 +60,6 @@ class TransAnalysis(BaseAnalysis):
                 len(self.an_mode['displacement_energies'])]
 
             self.add_displacement_energy(displacement)
-
-    def sample_until_convergence(self):
-        """ Function will choose new points along the rotation
-        to calculate groundstate of and terminates if the thermodynamical
-        properties have converged for the mode.
-        """
-        # initialize history to check convergence on
-        self.ZPE = []
-        self.entropy_E = []
-
-        # while not converged and samples < max-samples
-        self.ZPE_hist = []
-        self.Z_mode_hist = []
-
-        while self.is_converged() is False:
-            if len(self.ZPE_hist) > 0:
-                # sample a new point
-                self.sample_new_point()
-
-            if self.verbosity > 1:
-                self.log.write('Step %i \n' % len(self.ZPE_hist))
-
-            fit_settings.update({
-                'symnumber': 1,
-                'verbose': False,
-                'search_method': 'iterative',
-            })
-
-            fitobj = PeriodicFit(fit_settings)
-
-            fitobj.set_data(
-                self.an_mode['displacements'],
-                self.an_mode['displacement_energies'],
-                self.an_mode.get('displacement_forces', []))
-
-            fitobj.run()
-
-            ZPE, Z_mode, energies = self.get_thermo(fitobj)
-
-            self.ZPE_hist.append(ZPE)
-            self.Z_mode_hist.append(Z_mode)
-
-        if self.settings.get('plot_mode'):
-            self.plot_potential_energy(fitobj=fitobj)
-
-        return ZPE, Z_mode, energies
 
     def get_initial_points(self, nsamples):
         """Get the points to initially calculate the potential

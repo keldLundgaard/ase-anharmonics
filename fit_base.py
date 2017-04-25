@@ -49,9 +49,11 @@ class BaseFit:
         self.yders = yderivates
 
         # check data
+        self.use_derivatives = False
         assert len(xvals) == len(yvals)
         if len(yderivates) > 0:
             assert len(xvals) == len(yderivates)
+            self.use_derivatives = True
 
     def cleardata(self):
         """ Clear working array for fitting"""
@@ -64,7 +66,7 @@ class BaseFit:
         from the basic basis function """
         raise
 
-    def xvalsinbasis(self, xvals, yders):
+    def xvalsinbasis(self, xvals, use_derivatives=False):
         """ Creating the design matrix
 
         Args:
@@ -79,16 +81,19 @@ class BaseFit:
         self.setpersistentbasis()
 
         # The standard design matrix for y vals and y' vals
-        X = np.zeros((len(xvals)+len(yders), self.order))
+        if use_derivatives:
+            X = np.zeros((2*len(xvals), self.order))
+        else:
+            X = np.zeros((len(xvals), self.order))
 
         # Use the basisfunctions without any derivate
         for row, x in enumerate(xvals):
             X[row, :] = self.basisfunction(x, 0)
 
-        # Extend X matrix to include y' vals
-        if len(yders) > 0:
+        # Extend X matrix to include derivative of f at x
+        if use_derivatives:
             for row, x in enumerate(xvals):
-                X[row+len(yders), :] = self.basisfunction(x, 1)
+                X[row+len(xvals), :] = self.basisfunction(x, 1)
 
         return X
 
@@ -114,16 +119,22 @@ class BaseFit:
         assert len(self.xvals) > 3
 
         # Sets number of fitting coefficients to be used
-        self.order = self.getorder(len(self.xvals)+len(self.yders))
+        #
+        if self.use_derivatives:
+            # self.order = self.getorder(len(self.xvals)+len(self.yders))
+            self.order = self.getorder(len(self.xvals))
+        else:
+            self.order = self.getorder(len(self.xvals))
 
         # Setting up ydata
         y = self.scale_measureddata(self.yvals, self.yders)
 
         # Setting up design matrix
-        X = self.xvalsinbasis(self.xvals, self.yders)
+        X = self.xvalsinbasis(self.xvals, use_derivatives=self.use_derivatives)
 
-        # zero prior
+        # constant prior
         p = np.zeros(self.order)
+        p[0] = np.min(self.yvals)
 
         # Finding the optimal omega2 (regularzation parameter)
         res = find_optimal_regularization(X, y, p)
@@ -141,6 +152,8 @@ class BaseFit:
             print("omega2 opt : %.3e" % opt_omega2)
 
         self.coeffs = a0
+
+        self.n_eff = neff
 
         self.opt_omega2 = opt_omega2
         self.omega2_list = omega2_list
@@ -195,8 +208,6 @@ class BaseFit:
             # Always an uneven number of basis functions
             order = N - N % 2 - 1
 
-        if N > 5:
-            order -= 2
         return order
 
     @abc.abstractmethod
@@ -218,15 +229,15 @@ class BaseFit:
         err_arr = np.array(self.err_list).take(sort_order)
         ERR_arr = np.array(self.ERR_list).take(sort_order)
 
-        plt.title('omega2 opt %.2e' % self.opt_omega2)
+        plt.title('omega2: %.2e Neff: %.1f' % (self.opt_omega2, self.n_eff))
 
-        plt.semilogx(omega2_arr, epe_arr, '-', label='EPE')
-        plt.semilogx(omega2_arr, np.sqrt(err_arr), '--', label='err')
-        plt.semilogx(omega2_arr, np.sqrt(ERR_arr), '-.', label='ERR')
+        plt.loglog(omega2_arr, epe_arr, '-', label='EPE')
+        plt.loglog(omega2_arr, np.sqrt(err_arr), '--', label='err')
+        plt.loglog(omega2_arr, np.sqrt(ERR_arr), '-.', label='ERR')
 
         plt.legend(loc=2)
         plt.xlabel('Omega2')
         plt.ylabel('eV')
-
+        # plt.show()
         plt.savefig(filename)
         plt.clf()

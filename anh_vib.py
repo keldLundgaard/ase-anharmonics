@@ -3,15 +3,13 @@ from copy import copy
 
 import numpy as np
 
+from scipy.optimize import minimize_scalar
+
 from ase.io.trajectory import Trajectory
 
 from anh_base import BaseAnalysis
-from fit_legendre import NonPeriodicFit
-from fit_settings import fit_settings
 
 from an_utils import to_none_massweight_coor
-
-from scipy.optimize import minimize_scalar
 
 
 class VibAnalysis(BaseAnalysis):
@@ -117,54 +115,6 @@ class VibAnalysis(BaseAnalysis):
         displacements = np.hstack((-steps[::-1], [0.], steps))
 
         return displacements
-
-    def get_fit(self):
-        # Fit mode
-        fit_settings.update({
-            'verbose': False,
-            'search_method': 'iterative',
-        })
-
-        fitobj = NonPeriodicFit(fit_settings)
-
-        fitobj.set_data(
-            np.array(self.an_mode['displacements']),
-            np.array(self.an_mode['displacement_energies']),
-            self.an_mode.get('displacement_forces', []))
-
-        fitobj.run()
-
-        return fitobj
-
-    def sample_until_convergence(self):
-        # initialize history to check convergence on
-        self.ZPE = []
-        self.entropy_E = []
-
-        # while not converged and samples < max-samples
-        self.ZPE_hist = []
-        self.Z_mode_hist = []
-        self.energies_last = []
-
-        while self.is_converged() is False:
-            if len(self.ZPE_hist) > 0:
-                self.sample_new_point()
-
-            if self.verbosity > 1:
-                self.log.write('Step %i \n' % len(self.ZPE_hist))
-
-            fitobj = self.get_fit()
-
-            ZPE, Z_mode, energies = self.get_thermo(fitobj)
-            self.ZPE_hist.append(ZPE)
-            self.Z_mode_hist.append(Z_mode)
-            self.energie_hist = energies
-            self.fitobj = fitobj
-
-        if self.settings.get('plot_mode'):
-            self.plot_potential_energy(fitobj=fitobj)
-
-        return ZPE, Z_mode, energies
 
     def sample_new_point(self):
         """What new angle to sample:
