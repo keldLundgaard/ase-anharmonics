@@ -106,7 +106,7 @@ def Legendra_intbasis(order, xint, xdiffnormalize=True):
     if xdiffnormalize:
         for i in range(xint, order):
             for j in range(order):
-                Tint[i, j] = Tint[i, j] * np.sqrt((2.*(i-xint)+1.)/2.)
+                Tint[i, j] = Tint[i, j] * np.sqrt((2. * (i - xint) + 1.) / 2.)
     return Tint
 
 
@@ -125,12 +125,12 @@ def Legendra_matrix_integrator(T, order):
     assert(order > 1), "Must have more than one data point"
 
     # Integrate first two Polynomial functions
-    Tint[0, 0] = 1./(2.*0-1.)*T[0, 0]
-    Tint[1, 1] = 1./(2.*1-1.)*T[1, 1]
+    Tint[0, 0] = 1. / (2. * 0 - 1.) * T[0, 0]
+    Tint[1, 1] = 1. / (2. * 1 - 1.) * T[1, 1]
 
     for i in range(2, order):
         for j in range(order):
-            Tint[i, j] = 1./(2.*i-1.)*(T[i, j]-T[i-2, j])
+            Tint[i, j] = 1./(2. * i - 1.) * (T[i, j] - T[i - 2, j])
     return Tint
 
 
