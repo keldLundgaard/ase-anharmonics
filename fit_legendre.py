@@ -73,14 +73,14 @@ def getxpolyvec(xval, ndiff, order):
         if ndiff > 0:
             # Dirty quick factorial
             diffcoeff = 1
-            for i in range(2, ndiff+1):
+            for i in range(2, ndiff + 1):
                 diffcoeff *= i
 
             # Calculate the next coefficient by using the previous factorial
             xpoly[ndiff] *= diffcoeff
-            for i in range(ndiff+1, order):
+            for i in range(ndiff + 1, order):
                 diffcoeff *= i
-                diffcoeff /= (i-ndiff+1)
+                diffcoeff /= (i - ndiff + 1)
                 xpoly[i] *= diffcoeff
     return xpoly
 
@@ -130,7 +130,7 @@ def Legendra_matrix_integrator(T, order):
 
     for i in range(2, order):
         for j in range(order):
-            Tint[i, j] = 1./(2. * i - 1.) * (T[i, j] - T[i - 2, j])
+            Tint[i, j] = 1. / (2. * i - 1.) * (T[i, j] - T[i - 2, j])
     return Tint
 
 
@@ -159,6 +159,6 @@ def Legendra_basis(order):
     T[1, 1] = 1
     for i in range(2, order):
         for j in range(order-1):
-            T[i, j+1] += (2.*i-1.)/i*T[i-1, j]
-            T[i, j] += -1.*(i-1.)/i*T[i-2, j]
+            T[i, j + 1] += (2. * i - 1.)/i * T[i - 1, j]
+            T[i, j] += -1. * (i - 1.) / i * T[i - 2, j]
     return T
