@@ -297,7 +297,7 @@ class BaseAnalysis(object):
 
         x = self.an_mode['displacements']
         energies = self.an_mode['displacement_energies']
-        forces = self.an_mode['displacement_forces']
+        forces = self.an_mode.get('displacement_forces', [])
 
         dx = np.abs(x[1]-x[0]) / 4
         if len(forces):

@@ -122,39 +122,62 @@ class BaseFit:
         #
         if self.use_derivatives:
             # self.order = self.getorder(len(self.xvals)+len(self.yders))
-            self.order = self.getorder(len(self.xvals))
+            self.order = self.get_order(len(self.xvals))
         else:
-            self.order = self.getorder(len(self.xvals))
+            self.order = self.get_order(len(self.xvals))
 
-        # Setting up ydata
-        y = self.scale_measureddata(self.yvals, self.yders)
+        min_order = 3
+        max_order = self.get_order(len(self.xvals))
 
-        # Setting up design matrix
-        X = self.xvalsinbasis(self.xvals, use_derivatives=self.use_derivatives)
+        EPE_min_list = []
 
-        # constant prior
-        p = np.zeros(self.order)
-        p[0] = np.min(self.yvals)
+        res_list = []
 
-        # Finding the optimal omega2 (regularzation parameter)
-        res = find_optimal_regularization(X, y, p)
+        order_list = np.arange(min_order, max_order+1, 2)
+
+        for order in order_list:
+            self.order = order
+            # Setting up ydata
+            y = self.scale_measureddata(self.yvals, self.yders)
+
+            # Setting up design matrix
+            X = self.xvalsinbasis(
+                self.xvals,
+                use_derivatives=self.use_derivatives)
+
+            # constant prior
+            p = np.zeros(self.order)
+            p[0] = np.min(self.yvals)
+
+            # Finding the optimal omega2 (regularzation parameter)
+
+            res = find_optimal_regularization(X, y, p)
+            opt_omega2, omega2_list, epe_list, err_list, ERR_list = res
+
+            res_list.append(res)
+
+            EPE_min = np.min(epe_list)
+            EPE_min_list.append(EPE_min)
+
+        best_arg = np.argmin(np.array(EPE_min_list))
+
+        res = res_list[best_arg]
+
         opt_omega2, omega2_list, epe_list, err_list, ERR_list = res
 
         # Finding the optimal solution
         a0, neff = RR(X, y, p, opt_omega2)
-        # yfit = np.dot(X, a0)
 
         # Printing the optimal coeffs
         if self.settings.get('verbose'):
             print('The optimal coefficients:')
             print(', '.join(["{0:0.4f}".format(i) for i in a0]))
-            print("Neff : %.2f" % neff)
-            print("omega2 opt : %.3e" % opt_omega2)
+            print("Effective number of parameters : %.2f" % neff)
+            print("Estimated Prediction Error : %.2f" % EPE_min)
+            print("Optimal Regularization strength : %.3e" % opt_omega2)
 
         self.coeffs = a0
-
         self.n_eff = neff
-
         self.opt_omega2 = opt_omega2
         self.omega2_list = omega2_list
         self.epe_list = epe_list
@@ -198,7 +221,7 @@ class BaseFit:
         """ Returns the vector of x in current basis """
         return self.basisfunction(x, ndiff)
 
-    def getorder(self, N):
+    def get_order(self, N):
         """ Returns the number of coefficients used for fitting function.
         N - is the number of training data points
         """
@@ -208,6 +231,7 @@ class BaseFit:
             # Always an uneven number of basis functions
             order = N - N % 2 - 1
 
+        order = min(order, self.settings.get('max_order', 1000))
         return order
 
     @abc.abstractmethod
