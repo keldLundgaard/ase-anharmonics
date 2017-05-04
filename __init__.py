@@ -119,7 +119,8 @@ class AnharmonicModes:
             self.reduced_h_modes,
             calculate_highest_mode_overlap(
                 an_mode['mode_tangent_mass_weighted'],
-                self.reduced_h_modes),
+                self.reduced_h_modes,
+                print_out=self.settings.get('overlap_print', 0), ),
             axis=0)
 
         if orthogonalize:
@@ -171,7 +172,8 @@ class AnharmonicModes:
             self.reduced_h_modes,
             calculate_highest_mode_overlap(
                 an_mode['mode_tangent_mass_weighted'],
-                self.reduced_h_modes),
+                self.reduced_h_modes,
+                print_out=self.settings.get('overlap_print', 0), ),
             axis=0)
 
         if orthogonalize:
@@ -630,7 +632,7 @@ def gramm(X):
     return np.array(V)
 
 
-def calculate_highest_mode_overlap(tangent, modes):
+def calculate_highest_mode_overlap(tangent, modes, print_out=False):
     """Finding best projection mode:
     Calculates the projection of each mode on the tangent for the
     defined modes and returns the index of the mode that has the
@@ -639,4 +641,8 @@ def calculate_highest_mode_overlap(tangent, modes):
     Returns:
         Index of mode (int)
     """
-    return np.argmax([np.abs(np.dot(tangent, mode)) for mode in modes])
+    overlaps = [np.abs(np.dot(tangent, mode)) for mode in modes]
+    if print_out:
+        print(overlaps)
+
+    return np.argmax(overlaps)
