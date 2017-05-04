@@ -32,7 +32,9 @@ print('\n >> Anharmonics <<\n')
 
 AM = AnharmonicModes(
     vibrations_object=vib,
-    settings={'plot_mode': True})
+    settings={
+        'plot_mode': True,
+        'overlap_print': 1})
 
 rot_mode = AM.define_rotation(
     basepos=[0., 0., -1.],
