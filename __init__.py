@@ -47,7 +47,6 @@ class AnharmonicModes:
         settings={},
         log=sys.stdout,
         pre_names='an_mode_',
-        verbosity=1,
     ):
         """Initialization
 
@@ -56,8 +55,6 @@ class AnharmonicModes:
             settings (optional[dict]): Change default behavior. E.g.
                 "tempurature": 400  # (400K instead of 300K).
             log (optional[str]): name of log file.
-            verbosity (optional[int]): Change how much extra information
-                is printed.
         """
         self.vib = vibrations_object
         self.pre_names = pre_names
@@ -284,14 +281,14 @@ class AnharmonicModes:
                     filename='rot_mode_'+str(i)+'.traj')
 
     def run(self):
-        """Run the analysis"""
+        """Run the analysis.
+
+        Adding ZPE, Z_mode, and energy_levels to mode object.
+        """
         for i, _ in enumerate(self.an_modes):
             AMA = self.get_analysis_object(i)
-
-            # adding ZPE, Z_mode, and energy_levels to mode object
             self.an_modes[i] = AMA.run()
 
-        # Calculate the thermodynamical quantities:
         self.calculate_anharmonic_thermo()
 
     def inspect_anmodes(self):
@@ -335,10 +332,6 @@ class AnharmonicModes:
         """Calculates the thermodynamic quantities for the
         anharmonic normal mode analysis.
         """
-        #
-        # Calculate rotational mode ZPE and entropy energy
-        #
-
         self.hnu_h_post = self.calculate_post_h_freqs()
 
         # the partition function for each mode
@@ -379,7 +372,6 @@ class AnharmonicModes:
                 x = e_min_exitation/self.kT
                 entropic_energy_modes.append(
                     self.kT * (x/(np.exp(x) - 1.) - np.log(1. - np.exp(-x))))
-
             else:
                 ZPE = 0.
                 Z_mode = 1.
@@ -503,9 +495,6 @@ class AnharmonicModes:
         write(40*'-'+'\n')
         write('  #    ZPE    E_exc   E_ent  type'+'\n')
         write('  #    meV    meV     meV '+'\n')
-
-        # write('  #    ZPE     E_entropy   type'+'\n')
-        # write('       meV     meV           '+'\n')
         write(40*'-'+'\n')
         for i, an_mode in enumerate(self.an_modes):
             write(
@@ -523,9 +512,6 @@ class AnharmonicModes:
                     1000 * self.entropic_energy_modes[i],
                     'Harmonic'))
         write(40*'-'+'\n')
-
-        # to convert to cm^-1
-        # f = e * self.ev__inv_cm
 
         write('Zero-point energy: %.3f eV \n' % self.ZPE)
         write('Entropic energy: %.3f eV \n' % self.entropic_energy)
@@ -641,8 +627,14 @@ def calculate_highest_mode_overlap(tangent, modes, print_out=False):
     Returns:
         Index of mode (int)
     """
-    overlaps = [np.abs(np.dot(tangent, mode)) for mode in modes]
+    projections = [np.abs(np.dot(tangent, mode)) for mode in modes]
     if print_out:
-        print(overlaps)
+        print('Projections of anharmonic mode on harmonic modes:')
+        string = ""
+        for i, p in enumerate(projections):
+            if i and i % 5 == 0:
+                string += "\n"
+            string += "%3d: %.2f  " % (i, p**2)
+        print(string + '\n')
 
-    return np.argmax(overlaps)
+    return np.argmax(projections)
