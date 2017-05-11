@@ -97,6 +97,21 @@ class BaseFit:
 
         return X
 
+    def get_X_y_p(self):
+        # Setting up design matrix
+        X = self.xvalsinbasis(
+            self.xvals,
+            use_derivatives=self.use_derivatives)
+
+        # Setting up ydata
+        y = self.scale_measureddata(self.yvals, self.yders)
+
+        # constant prior
+        p = np.zeros(self.order)
+        p[0] = np.min(self.yvals)
+
+        return X, y, p
+
     def run(self):
         """Creating a best fit by regularization:
 
@@ -127,30 +142,18 @@ class BaseFit:
             self.order = self.get_order(len(self.xvals))
 
         min_order = 3
-        max_order = self.get_order(len(self.xvals))
-
-        EPE_min_list = []
-
-        res_list = []
+        max_order = min(16, self.get_order(len(self.xvals)))
 
         order_list = np.arange(min_order, max_order+1, 2)
 
+        EPE_min_list = []
+        res_list = []
         for order in order_list:
             self.order = order
-            # Setting up ydata
-            y = self.scale_measureddata(self.yvals, self.yders)
 
-            # Setting up design matrix
-            X = self.xvalsinbasis(
-                self.xvals,
-                use_derivatives=self.use_derivatives)
-
-            # constant prior
-            p = np.zeros(self.order)
-            p[0] = np.min(self.yvals)
+            X, y, p = self.get_X_y_p()
 
             # Finding the optimal omega2 (regularzation parameter)
-
             res = find_optimal_regularization(X, y, p)
             opt_omega2, omega2_list, epe_list, err_list, ERR_list = res
 
@@ -161,9 +164,11 @@ class BaseFit:
 
         best_arg = np.argmin(np.array(EPE_min_list))
 
+        self.order = order_list[best_arg]
         res = res_list[best_arg]
-
         opt_omega2, omega2_list, epe_list, err_list, ERR_list = res
+
+        X, y, p = self.get_X_y_p()
 
         # Finding the optimal solution
         a0, neff = RR(X, y, p, opt_omega2)

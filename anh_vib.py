@@ -22,7 +22,6 @@ class VibAnalysis(BaseAnalysis):
         an_filename=None,
         settings={},
         log=sys.stdout,
-        verbosity=1,
     ):
         super(VibAnalysis, self).__init__()
 
@@ -31,16 +30,13 @@ class VibAnalysis(BaseAnalysis):
         self.an_filename = an_filename
         self.settings = settings
         self.log = log
-        self.verbosity = verbosity
 
         # Checks
         assert self.an_mode['type'] == 'vibration'
 
         # settings
         self.min_sample_energy_kT = settings.get('min_sample_energy_kT', 3)
-        self.temperature = settings.get('temperature', 300)  # Kelvin
         self.use_forces = settings.get('use_forces', False)
-        self.rel_Z_mode_change_tol = settings.get('rel_Z_mode_tol', 0.005)
 
         # The maximum displacement of of the atoms in angstrom
         self.mode_xyz = to_none_massweight_coor(
@@ -150,7 +146,6 @@ class VibAnalysis(BaseAnalysis):
                     continue
 
                 # We want to sample the potential energy curve further out
-
                 boundary = np.sort([x[i] for i in displacement_i])[[-1, 0][k]]
 
                 # fit with current points

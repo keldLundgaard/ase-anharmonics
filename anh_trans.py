@@ -19,7 +19,6 @@ class TransAnalysis(BaseAnalysis):
         an_filename=None,
         settings={},
         log=sys.stdout,
-        verbosity=1,
     ):
         super(TransAnalysis, self).__init__()
 
@@ -28,7 +27,6 @@ class TransAnalysis(BaseAnalysis):
         self.an_filename = an_filename
         self.settings = settings
         self.log = log
-        self.verbosity = verbosity
 
         # Checks
         assert self.an_mode['type'] == 'translation'
@@ -36,10 +34,7 @@ class TransAnalysis(BaseAnalysis):
         # settings
         self.fit_forces = settings.get('fit_forces', False)
         self.E_max_kT = settings.get('E_max_kT', 5)
-        self.temperature = settings.get('temperature', 300)  # Kelvin
         self.use_forces = settings.get('use_forces', False)
-        # Convergence tolerance
-        self.rel_Z_mode_change_tol = settings.get('rel_Z_mode_tol', 0.01)
 
         self.initialize()
 

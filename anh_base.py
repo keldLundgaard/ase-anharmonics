@@ -25,7 +25,7 @@ class BaseAnalysis(object):
         """Initialize the analysis module."""
 
         # Calculate kT to be used:
-        self.kT = units.kB * self.temperature
+        self.kT = units.kB * self.settings.get('temperature', 300)  # Kelvin
 
         # Define groundstate_positions -- free as already calculated
         self.groundstate_positions = self.atoms.get_positions()
@@ -84,31 +84,34 @@ class BaseAnalysis(object):
         self.entropy_E = []
 
         # while not converged and samples < max-samples
-        self.ZPE_hist = []
-        self.Z_mode_hist = []
+        self.ZPE_mode_hist = []
+        self.ZE_mode_est = []  # estimate of entrypy contribution of mode
 
         while self.is_converged() is False:
-            if len(self.ZPE_hist) > 0:
+            iteration_num = len(self.ZPE_mode_hist)
+
+            if len(self.ZPE_mode_hist) > 0:
                 # sample a new point
                 self.sample_new_point()
 
-            if self.verbosity > 1:
-                self.log.write('Step %i \n' % len(self.ZPE_hist))
+            if self.settings.get('verbosity', 0) > 1:
+                self.log.write('Step %i \n' % iteration_num)
 
             fitobj = self.get_fit()
 
-            ZPE, Z_mode, energies = self.get_thermo(fitobj)
+            ZPE_mode, Z_mode, energies = self.get_thermo(fitobj)
 
-            self.ZPE_hist.append(ZPE)
-            self.Z_mode_hist.append(Z_mode)
+            self.ZE_mode_est.append(self.kT * np.log(Z_mode))
+            self.ZPE_mode_hist.append(ZPE_mode)
+
             if self.settings.get('plot_mode_each_iteration'):
                 self.plot_potential_energy(
                     fitobj=fitobj,
-                    name_add='_%02d' % len(self.ZPE_hist))
+                    name_add='_%02d' % iteration_num)
 
             if self.settings.get('fit_plot_regu_curve_iterations'):
                 fitobj.plot_regularization_curve(
-                    name_add='_%02d' % len(self.ZPE_hist))
+                    name_add='_%02d' % iteration_num)
 
         if self.settings.get('plot_mode'):
             self.plot_potential_energy(fitobj=fitobj)
@@ -116,7 +119,7 @@ class BaseAnalysis(object):
         if self.settings.get('fit_plot_regu_curve'):
             fitobj.plot_regularization_curve()
 
-        return ZPE, Z_mode, energies
+        return ZPE_mode, Z_mode, energies
 
     def get_fit(self):
         user_fit_settings = dict(
@@ -264,32 +267,43 @@ class BaseAnalysis(object):
         """
         converged = False
 
-        iterations = len(self.ZPE_hist)
+        iterations = len(self.ZPE_mode_hist)
 
+        conv_tol = self.settings.get('conv_tol', 0.001)
         if iterations > self.settings.get('min_step_iterations', 2):
-            rel_Z_mode_change = np.abs(
-                (self.Z_mode_hist[-1]-self.Z_mode_hist[-2])
-                / self.Z_mode_hist[-2])
 
-            if self.verbosity > 1:
-                print('Iteration: ', iterations)
-                print('rel Z_mode change', rel_Z_mode_change)
+            ZPE_mode_delta = np.abs(
+                self.ZPE_mode_hist[-1] - self.ZPE_mode_hist[-2])
 
-            if iterations > self.settings.get('max_step_iterations', 15):
+            ZE_mode_est_delta = np.abs(
+                self.ZE_mode_est[-1] - self.ZE_mode_est[-2])
+
+            if self.settings.get('verbosity', 0) > 0:
+                self.log.write(
+                    'Deltas ZPE: %.2e eV Entropy est: %.2e eV tol: %.1e \n'
+                    % (ZPE_mode_delta, ZE_mode_est_delta, conv_tol))
+
+            if max(ZPE_mode_delta, ZE_mode_est_delta) < conv_tol:
+                converged = 1
+                if self.settings.get('verbosity', 0) > 0:
+                    self.log.write('>>> Converged! <<< \n')
+
+            elif iterations > self.settings.get('max_step_iterations', 15):
                 converged = True
-                print(
+                self.log.write(
                     'Exiting after %i iterations: Cannot converge properly'
                     % iterations)
-                print('rel_Z_mode_change', rel_Z_mode_change)
+                self.log.write(
+                    'Energy change ZPE: %.2e Entropy est: %.2e  tol: %.2e' %
+                    (ZPE_mode_delta, ZE_mode_est_delta, conv_tol))
             else:
-                if np.abs(rel_Z_mode_change) < self.rel_Z_mode_change_tol:
-                    converged = True
+                converged = False
 
         return converged
 
-    def plot_potential_energy(self, fitobj=None, filename=None, name_add=''):
-        # Matplotlib is loaded selectively as it is requires
-        # libraries that are often not installed on clusters
+    def plot_potential_energy(
+            self, fitobj=None, filename=None, name_add=''):
+        """Plot function to help debugging and understanding the modes."""
         import matplotlib.pylab as plt
 
         if filename is None:
@@ -302,7 +316,7 @@ class BaseAnalysis(object):
         dx = np.abs(x[1]-x[0]) / 4
         if len(forces):
             for i, (xi, ei, fi) in enumerate(zip(x, energies, forces)):
-                # Need to figure out why negative is needed here
+                # TODO: Why negative?
                 df = -1 * dx * fi
                 plt.plot(
                     [xi-dx, xi+dx], [ei - df, ei + df],
@@ -311,7 +325,6 @@ class BaseAnalysis(object):
         plt.plot(x, energies, 'x', label=('Samples (%i points)' % (len(x))))
 
         if fitobj is not None:
-            # plt.title('Number of Fitting coefficients ')
             x_fit = np.linspace(min(x), max(x), 200)
             y_fit = fitobj.fval(x_fit)
 

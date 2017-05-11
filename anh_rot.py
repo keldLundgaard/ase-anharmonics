@@ -19,7 +19,6 @@ class RotAnalysis(BaseAnalysis):
         an_filename=None,
         settings={},
         log=sys.stdout,
-        verbosity=1,
     ):
         super(RotAnalysis, self).__init__()
 
@@ -28,18 +27,13 @@ class RotAnalysis(BaseAnalysis):
         self.an_filename = an_filename
         self.settings = settings
         self.log = log
-        self.verbosity = verbosity
 
         # Checks
         assert self.an_mode['type'] == 'rotation'
 
         # settings
-
         self.E_max_kT = settings.get('E_max_kT', 5)
-        self.temperature = settings.get('temperature', 300)  # Kelvin
         self.use_forces = settings.get('use_forces', False)
-        # Convergence tolorance
-        self.rel_Z_mode_change_tol = settings.get('rel_Z_mode_tol', 0.005)
 
         self.initialize()
 
