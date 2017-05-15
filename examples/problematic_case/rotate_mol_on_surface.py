@@ -32,8 +32,9 @@ print('\n >> Anharmonics <<\n')
 
 AM = AnharmonicModes(
     vibrations_object=vib,
+    pre_names='an_mode_',
     settings={
-        # 'use_forces': True,
+        'use_forces': True,
         # 'plot_mode': True,
         'temperature': 298.15,
         # 'rot_nsamples': 15,
@@ -46,7 +47,7 @@ AM = AnharmonicModes(
         'fit_plot_regu_curve': True,
         'fit_forces': False,
         'verbosity': 2,
-        'rel_Z_mode_tol': 0.05,
+        'conv_tol': 2e-4,
         # 'fit_max_order': 5,
         # 'fit_pdiff': 2,
     })

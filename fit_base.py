@@ -144,7 +144,7 @@ class BaseFit:
         min_order = 3
         max_order = min(16, self.get_order(len(self.xvals)))
 
-        order_list = np.arange(min_order, max_order+1, 2)
+        order_list = np.arange(min_order, max_order+1, 1)
 
         EPE_min_list = []
         res_list = []
@@ -165,6 +165,7 @@ class BaseFit:
         best_arg = np.argmin(np.array(EPE_min_list))
 
         self.order = order_list[best_arg]
+
         res = res_list[best_arg]
         opt_omega2, omega2_list, epe_list, err_list, ERR_list = res
 
@@ -228,15 +229,16 @@ class BaseFit:
 
     def get_order(self, N):
         """ Returns the number of coefficients used for fitting function.
-        N - is the number of training data points
+        # N - is the number of training data points
         """
         if N <= 3:
             order = N
         else:
             # Always an uneven number of basis functions
-            order = N - N % 2 - 1
+            # order = N - N % 2 - 1
+            order = N - 1
 
-        order = min(order, self.settings.get('max_order', 1000))
+        order = min(order, self.settings.get('max_order', 15))
         return order
 
     @abc.abstractmethod

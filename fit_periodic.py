@@ -98,7 +98,7 @@ class PeriodicFit(BaseFit):
             basefuncs = [self.sin_pos, self.cos_neg]
 
         # Range excludes last basis value if order is even
-        for nthbase in range(2, order, 2):
+        for nthbase in range(2, order, 1):
             k = symnumber * nthbase / 2
             coeff = k**coeffdiff
             Xrow[nthbase-1] = coeff * basefuncs[0](k*theta)

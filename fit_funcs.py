@@ -51,8 +51,13 @@ def find_optimal_regularization(X, Y, p, Ns=100):
         omega2_range = [np.exp(pp) for pp in np.linspace(
             wlow, whigh, wsteps)]
 
-        BS_res = bootstrap_master(X, Y, p, omega2_range, Ns)
-        err_l, ERR_l, EPE_l, coefs_samples_l = BS_res
+        if 0:
+            EPE_l = LOOCV_l(X, Y, p, omega2_range)
+            err_l = np.zeros_like(EPE_l)
+            ERR_l = np.zeros_like(EPE_l)
+        else:
+            BS_res = bootstrap_master(X, Y, p, omega2_range, Ns)
+            err_l, ERR_l, EPE_l, coefs_samples_l = BS_res
 
         omega2_list += omega2_range
         EPE_list += EPE_l.tolist()
@@ -81,9 +86,9 @@ def bootstrap_master(X, Y, p, omega2_l, Ns=200):
         res = bootstrap_calc(
             X, Y, p, omega2, samples,
             X2_W=X2_W, X2_Vh=X2_Vh,
-            W2_samples=W2_samples, Vh_samples=Vh_samples
-        )
-        (err, ERR, EPE, coefs_samples) = res
+            W2_samples=W2_samples, Vh_samples=Vh_samples)
+
+        err, ERR, EPE, coefs_samples = res
 
         if i == 0:
             err_l = err
@@ -122,7 +127,10 @@ def bootstrap_calc(
 
     coefs = RR(X, Y, p, omega2, W2=X2_W, Vh=X2_Vh, calc_Neff=False)
     err = np.mean((np.dot(X, coefs.T) - Y)**2)
-
+    if 0 and len(Y) > 10:
+        print(
+            'err  %.2e  %.2e  order: %i  points: %i' %
+            (err, omega2, len(p), len(Y)))
     error_samples = []
 
     for i in range(len(samples)):

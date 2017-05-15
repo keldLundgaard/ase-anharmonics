@@ -85,17 +85,16 @@ class BaseAnalysis(object):
 
         # while not converged and samples < max-samples
         self.ZPE_mode_hist = []
-        self.ZE_mode_est = []  # estimate of entrypy contribution of mode
+        self.ZE_mode_est = []  # estimate of entropy contribution of mode
 
         while self.is_converged() is False:
             iteration_num = len(self.ZPE_mode_hist)
 
-            if len(self.ZPE_mode_hist) > 0:
-                # sample a new point
-                self.sample_new_point()
-
             if self.settings.get('verbosity', 0) > 1:
                 self.log.write('Step %i \n' % iteration_num)
+
+            if len(self.ZPE_mode_hist) > 0:
+                self.sample_new_point()
 
             fitobj = self.get_fit()
 
@@ -122,38 +121,29 @@ class BaseAnalysis(object):
         return ZPE_mode, Z_mode, energies
 
     def get_fit(self):
+        fit_settings.update({
+            'verbose': False,
+            'search_method': 'iterative',
+            'an_name': self.an_filename, })
+
         user_fit_settings = dict(
             (key[4:], val) for key, val in self.settings.items()
             if key[:4] == 'fit_')
-        user_fit_settings.update({'an_name': self.an_filename})
+
+        fit_settings.update(user_fit_settings)
+
         if self.an_mode['type'] == 'vibration':
-            fit_settings.update({
-                'verbose': False,
-                'search_method': 'iterative'})
-            fit_settings.update(user_fit_settings)
             fitobj = NonPeriodicFit(fit_settings)
 
         elif self.an_mode['type'] == 'rotation':
-            fit_settings.update({
-                'symnumber': self.an_mode['symnumber'],
-                'search_method': 'iterative',
-                'iteration': len(self.Z_mode_hist)})
-            fit_settings.update(user_fit_settings)
             fitobj = PeriodicFit(fit_settings)
 
         elif self.an_mode['type'] == 'translation':
-            fit_settings.update({
-                'symnumber': 1,
-                'verbose': False,
-                'search_method': 'iterative',
-            })
-            fit_settings.update(user_fit_settings)
+            fit_settings.update({'symnumber': 1})
             fitobj = PeriodicFit(fit_settings)
 
         else:
             raise ValueError(" Unknown an_mode")
-
-        # Get all settings with fit_ to input in fitting
 
         fitobj.set_data(
             self.an_mode['displacements'],
@@ -169,8 +159,10 @@ class BaseAnalysis(object):
         file then it will load this into the mode object.
         """
         backup_loaded = 0
+
         # Check if the filename is there
         if self.an_filename and os.path.exists(self.an_filename+'.pckl'):
+
             # Open backup file
             backup = pickle.load(paropen(self.an_filename+'.pckl', 'rb'))
 
@@ -269,7 +261,7 @@ class BaseAnalysis(object):
 
         iterations = len(self.ZPE_mode_hist)
 
-        conv_tol = self.settings.get('conv_tol', 0.001)
+        conv_tol = self.settings.get('conv_tol', 2e-4)
         if iterations > self.settings.get('min_step_iterations', 2):
 
             ZPE_mode_delta = np.abs(

@@ -1,5 +1,6 @@
 import sys
 from copy import copy
+import warnings
 
 import numpy as np
 
@@ -45,7 +46,7 @@ class VibAnalysis(BaseAnalysis):
             self.an_mode['indices'])
 
         self.max_stepsize = (
-            self.settings.get('max_disp', 0.05)  # angstrom
+            self.settings.get('max_displacement', 0.1)  # angstrom
             / np.max(np.linalg.norm(self.mode_xyz.reshape(-1, 3), axis=1))
         )
         self.initialize()
@@ -103,7 +104,6 @@ class VibAnalysis(BaseAnalysis):
                     step_size = self.max_stepsize
         else:
             # If not then we put the step_size to be very big so
-            #
             step_size = self.max_stepsize
 
         steps = np.linspace(0., step_size, displacements/2+1)[1:]
@@ -111,6 +111,25 @@ class VibAnalysis(BaseAnalysis):
         displacements = np.hstack((-steps[::-1], [0.], steps))
 
         return displacements
+
+    def get_directional_displacements(self, direction):
+        x = self.an_mode['displacements']
+        arg_min_x = np.argmin(np.array(self.an_mode['displacement_energies']))
+        dir_displacements = [
+            i for i, xi in enumerate(x)
+            if direction*(xi-x[arg_min_x]) >= 0.]
+        return dir_displacements
+
+    def get_energy_span(self, direction):
+        displacement_i = self.get_directional_displacements(direction)
+        sample_energies = np.array(self.an_mode['displacement_energies'])
+
+        displacement_energies = [sample_energies[i]
+                                 for i in displacement_i]
+        sampling_energy_span = (np.max(displacement_energies) -
+                                np.min(displacement_energies))
+
+        return sampling_energy_span
 
     def sample_new_point(self):
         """What new angle to sample:
@@ -121,31 +140,53 @@ class VibAnalysis(BaseAnalysis):
         """
         # Should we sample further out
         sample_energies = np.array(self.an_mode['displacement_energies'])
-        x = self.an_mode['displacements']
 
-        min_energy_sampling = self.kT * self.min_sample_energy_kT
-
-        arg_min_x = np.argmin(sample_energies)
-
+        bound_search_samples = 0
         # Need to go out to the bounds in both directions
         for k, direction in enumerate([1, -1]):
-            displacement_i = [i for i, xi in enumerate(x)
-                              if direction*(xi-x[arg_min_x]) > 0.]
+            displacement_i = self.get_directional_displacements(direction)
 
-            if len(displacement_i) > 0:
-                # First we check for if we have gotten the potential defined
-                # good enough, or if we need to sample further out
-                displacement_energies = [sample_energies[i]
-                                         for i in displacement_i]
-                sampling_energy_span = (np.max(displacement_energies) -
-                                        np.min(displacement_energies))
+            ll = 0
+            while(len(displacement_i) == 0):
+                bound_search_samples += 1
+                # We are in a situation where the furthest point that we
+                # sampled in this direction has the lowest energy.
+                # This could be caused by sampling an imaginary frequency
+                # mode.
+                warnings.warnings(
+                    'The structure is not in a fully relaxed position.')
 
-                # widen the window of samples
-                # If the sample is good enough then we can continue
-                if sampling_energy_span > min_energy_sampling:
-                    continue
+                x = self.an_mode['displacements']
+                x_arg_sort = np.argsort(x)
+                if direction == 1:
+                    next_displacement = (
+                        2*x[x_arg_sort[-1]]-x[x_arg_sort[-2]])
+                else:
+                    next_displacement = (
+                        2*x[x_arg_sort[0]]-x[x_arg_sort[1]])
+
+                self.an_mode['displacements'].append(next_displacement)
+                self.add_displacement_energy(next_displacement)
+
+                displacement_i = self.get_directional_displacements(direction)
+                ll += 1
+                if ll >= self.settings.get('max_pre_boundary_steps', 5):
+                    break
+
+            # Sampling out so that the boundaries are well defined
+            ll = 0
+
+            # First we check for if we have gotten the potential defined
+            # good enough, or if we need to sample further out
+            min_energy_sampling = self.kT * self.min_sample_energy_kT
+
+            while(self.get_energy_span(direction) < min_energy_sampling):
+                bound_search_samples += 1
 
                 # We want to sample the potential energy curve further out
+                x = self.an_mode['displacements']
+
+                displacement_i = self.get_directional_displacements(direction)
                 boundary = np.sort([x[i] for i in displacement_i])[[-1, 0][k]]
 
                 # fit with current points
@@ -155,7 +196,7 @@ class VibAnalysis(BaseAnalysis):
                 # at max step be larger than than kt_sample_min. If so search
                 # for the proper step length. Otherwise, move max step length
 
-                max_displacement = boundary + direction*self.max_stepsize
+                max_displacement = boundary + direction * self.max_stepsize
 
                 # Checking if we are up to the bounds
                 if (
@@ -168,7 +209,6 @@ class VibAnalysis(BaseAnalysis):
                     bounds = [boundary,
                               boundary+direction*self.max_stepsize
                               ][::direction]
-
                     # Function that I want to optimize for
                     # Taking the absolute as I want it to be as close to
                     # min_energy_sampling as possible
@@ -187,55 +227,46 @@ class VibAnalysis(BaseAnalysis):
 
                 self.an_mode['displacements'].append(next_displacement)
                 self.add_displacement_energy(next_displacement)
+
+                ll += 1
+                if ll >= self.settings.get('max_boundary_steps', 10):
+                    break
+
+        # Only if we have not searched bounds as that would already
+        # be extra data points
+        if bound_search_samples == 0:
+            # Find the next point to sample as the one that we think would
+            # add the most information. The simple approach is here to
+            # calculate the spacings between the different displacements
+            # and scale the spacing by the the exponential energy that is
+            # expected for that point.
+            #
+            fitobj = self.get_fit()
+
+            displacements = np.sort(self.an_mode['displacements'])
+            sort_args = np.argsort(self.an_mode['displacements'])
+            energies = np.array([self.an_mode['displacement_energies'][i]
+                                 for i in sort_args])
+            energies -= np.min(energies)  # subtracting the groundstate energy
+
+            if self.settings.get('use_scaled_spacings', 1):
+                scaled_spacings = [
+                    (displacements[i+1]-displacements[i])
+                    * np.exp(-(energies[i+1]+energies[i])/(2*self.kT))
+                    for i in range(len(energies)-1)]
+
+                max_arg = np.argmax(np.array(scaled_spacings))
             else:
-                # We are in a situation where the furthest point that we
-                # sampled in this direction has the lowest energy.
-                # This could be caused by sampling an imaginary frequency
-                # mode.
-                x_arg_sort = np.argsort(x)
-                if direction == 1:
-                    next_displacement = (
-                        2*x[x_arg_sort[-1]]-x[x_arg_sort[-2]])
-                else:
-                    next_displacement = (
-                        2*x[x_arg_sort[0]]-x[x_arg_sort[1]])
+                spacings = [
+                    (displacements[i+1]-displacements[i])
+                    for i in range(len(energies)-1)]
+                max_arg = np.argmax(np.array(spacings))
 
-                self.an_mode['displacements'].append(next_displacement)
-                self.add_displacement_energy(next_displacement)
+            next_displacement = (
+                displacements[max_arg+1]+displacements[max_arg]) / 2.
 
-        #
-        # Find the next point to sample as the one that we think would
-        # add the most information. The simple approach is here to
-        # calculate the spacings between the different displacements
-        # and scale the spacing by the the exponential energy that is expected
-        # for that point.
-        #
-        fitobj = self.get_fit()
-
-        displacements = np.sort(self.an_mode['displacements'])
-        sort_args = np.argsort(self.an_mode['displacements'])
-        energies = np.array([self.an_mode['displacement_energies'][i]
-                             for i in sort_args])
-        energies -= np.min(energies)  # subtracting the groundstate energy
-
-        if self.settings.get('use_scaled_spacings', 1):
-            scaled_spacings = [
-                (displacements[i+1]-displacements[i])
-                * np.exp(-(energies[i+1]+energies[i])/(2*self.kT))
-                for i in range(len(energies)-1)]
-
-            max_arg = np.argmax(np.array(scaled_spacings))
-        else:
-            spacings = [
-                (displacements[i+1]-displacements[i])
-                for i in range(len(energies)-1)]
-            max_arg = np.argmax(np.array(spacings))
-
-        next_displacement = (
-            displacements[max_arg+1]+displacements[max_arg]) / 2.
-
-        self.an_mode['displacements'].append(next_displacement)
-        self.add_displacement_energy(next_displacement)
+            self.an_mode['displacements'].append(next_displacement)
+            self.add_displacement_energy(next_displacement)
 
     def add_displacement_energy(self, displacement):
 
