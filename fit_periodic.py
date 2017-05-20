@@ -74,7 +74,7 @@ class PeriodicFit(BaseFit):
 
         """
 
-        assert order % 2 == 1, 'current trig fitting requires uneven order'
+        # assert order % 2 == 1, 'current trig fitting requires uneven order'
 
         Xrow = np.zeros(order)
 
