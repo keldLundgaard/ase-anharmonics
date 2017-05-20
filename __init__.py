@@ -609,10 +609,10 @@ def gramm(X):
         Numpy array of Gramm-Schmidt orthogonalized vector space
     """
     V = copy(X)
-    n = len(X[0])
+    n = V.shape[0]
     for j in range(1, n):
         V[j] = V[j] - sum([
-            np.inner(V[j], V[p])*V[p]/np.inner(V[p], V[p])
+            np.inner(V[j], V[p]) * V[p] / np.inner(V[p], V[p])
             for p in range(j)])
         V[j] = V[j]/(np.inner(V[j], V[j]))**(0.5)
     return np.array(V)

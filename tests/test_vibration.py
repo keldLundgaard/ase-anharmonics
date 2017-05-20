@@ -28,7 +28,7 @@ AM.run()
 AM.summary(log='/dev/null')
 AM.clean()
 
-assert abs(AM.get_ZPE() - 0.497) < 1e-3, AM.get_ZPE()
+assert abs(AM.get_ZPE() - 0.313) < 1e-3, AM.get_ZPE()
 assert abs(AM.get_entropic_energy()) < 1e-3, AM.get_entropic_energy()
 
 AM = AnharmonicModes(vib,
@@ -43,5 +43,5 @@ AM.run()
 AM.summary(log='/dev/null')
 AM.clean()
 
-assert abs(AM.get_ZPE() - 0.379) < 1e-3, AM.get_ZPE()
+assert abs(AM.get_ZPE() - 0.374) < 1e-3, AM.get_ZPE()
 assert abs(AM.get_entropic_energy()) < 1e-3, AM.get_entropic_energy()
